@@ -42,12 +42,6 @@ namespace PowerShellPowered.PowerShellConnect.Tests
         }
 
         [TestMethod()]
-        public void CreateTest1()
-        {
-            Assert.Fail();
-        }
-
-        [TestMethod()]
         public void ResetRunspaceTest()
         {
             Assert.Fail();

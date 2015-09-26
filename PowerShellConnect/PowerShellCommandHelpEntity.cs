@@ -7,13 +7,6 @@ namespace PowerShellPowered.PowerShellConnect.Entities
 
     public class PSCommandHelp
     {
-        public PSCommandHelp()
-        {
-            this.PSCommandHelpExamples = new List<PSCommandHelpExample>();
-            this.PSCommandHelpParameters = new List<PSCommandHelpParameter>();
-            this.PSCommandHelpSyntaxes = new List<PSCommandHelpSyntax>();
-        }
-
         public string Name { get; set; }
         public string Description { get; set; }
         public string FullHelpText { get; set; }
@@ -25,16 +18,16 @@ namespace PowerShellPowered.PowerShellConnect.Entities
         public string InputTypes { get; set; }
         public string Functionality { get; set; }
         public string NonTerminatingErrors { get; set; }
-        public string RelatedLinks { get; set; }
+        public List<string> RelatedLinks { get; set; } = new List<string>();
         public string ReturnValues { get; set; }
         public string Role { get; set; }
         public string Synopsis { get; set; }
         public string TerminatingErrors { get; set; }
         public string Details { get; set; }
 
-        public List<PSCommandHelpExample> PSCommandHelpExamples { get; set; }
-        public List<PSCommandHelpParameter> PSCommandHelpParameters { get; set; }
-        public List<PSCommandHelpSyntax> PSCommandHelpSyntaxes { get; set; }
+        public List<PSCommandHelpExample> PSCommandHelpExamples { get; set; } = new List<PSCommandHelpExample>();
+        public List<PSCommandHelpParameter> PSCommandHelpParameters { get; set; } = new List<PSCommandHelpParameter>();
+        public List<PSCommandHelpSyntax> PSCommandHelpSyntaxes { get; set; } = new List<PSCommandHelpSyntax>();
 
         public override string ToString()
         {
@@ -82,13 +75,9 @@ namespace PowerShellPowered.PowerShellConnect.Entities
 
     public class PSCommandHelpSyntax
     {
-        public PSCommandHelpSyntax()
-        {
-            this.PSCommandHelpSyntaxParameters = new List<PSCommandHelpSyntaxParameter>();
-        }
         public string Name { get; set; }
         public string Syntax { get; set; }
-        public List<PSCommandHelpSyntaxParameter> PSCommandHelpSyntaxParameters { get; set; }
+        public List<PSCommandHelpSyntaxParameter> PSCommandHelpSyntaxParameters { get; set; } = new List<PSCommandHelpSyntaxParameter>();
 
         public override string ToString()
         {

@@ -804,7 +804,7 @@ namespace PowerShellPowered.PowerShellConnect
             _result.Name = pso.GetPropertyValue("name");
             _result.NonTerminatingErrors = pso.GetPropertyValue("nonterminatingerrors");
             _result.Parameters = pso.GetPropertyValue("parameters");
-            _result.RelatedLinks = pso.GetPropertyValue("relatedlinks");
+            _result.RelatedLinks.Add(pso.GetPropertyValue("relatedlinks"));
             _result.ReturnValues = pso.GetPropertyValue("returnvalues");
             _result.Role = pso.GetPropertyValue("role");
             _result.Synopsis = pso.GetPropertyValue("synopsis");

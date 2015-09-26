@@ -521,23 +521,23 @@ $EntitiesFile = ''
             {return $false}
     }
 
-    function GetNavigationLink
+    function GetNavigationLinks
     {
         param($help)
         
-        $link = $null
-        if(-not $help.relatedLinks) {return $null}
+        $link = @()
+        if(-not $help.relatedLinks) {return $link}
         
-        $linkObjs = $help.relatedLinks.navigationLink | ?{$_.linktext -like 'online version*'}
+        $linkObjs = $help.relatedLinks.navigationLink | ?{!$_.linktext -or $_.linktext -like 'online version*'}
 
         if($linkObjs)
         {
-            $link = $linkObjs[0].uri
+            $linkObjs | %{$link += $_.uri}
         }
 
-        if(-not $link)
+        if($link.count -eq 0)
         {
-            $link = ($help.relatedLinks | Out-String -Width 10000).Trim()
+            $link += ($help.relatedLinks | Out-String -Width 10000).Trim()
         }
 
         return $link
@@ -575,7 +575,8 @@ $EntitiesFile = ''
         $h.Name = ($help.Name | Out-String -Width 10000).Trim()
         $h.NonTerminatingErrors = ($help.nonTerminatingErrors | Out-String -Width 10000).Trim()
         $h.Parameters = ($help.parameters | Out-String -Width 10000).Trim()
-        $h.RelatedLinks = GetNavigationLink -help $help
+        GetNavigationLinks -help $help | %{$h.RelatedLinks.Add($_)}
+        #$h.RelatedLinks.Add((GetNavigationLinks -help $help).length)
         $h.ReturnValues = ($help.returnValues | Out-String -Width 10000).Trim()
         $h.Role = ($help.Role | Out-String -Width 10000).Trim()
         $h.Synopsis = ($help.Synopsis | Out-String -Width 10000).Trim()
