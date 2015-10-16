@@ -1,13 +1,11 @@
-﻿
-
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 namespace PowerShellPowered.PowerShellConnect
 {
     public static class Constants
     {
         public static List<string> CommomParamaters = new List<string>() { "Debug", "ErrorAction", "ErrorVariable", "OutVariable", "OutBuffer", "Verbose", "WarningAction", "WarningVariable", "WhatIf" };
 
-        public static class PSCmdlets
+        public static class Cmdlets
         {
             internal const string SetVariable = "Set-Variable";
             internal const string GetCommand = "Get-Command";
@@ -15,16 +13,16 @@ namespace PowerShellPowered.PowerShellConnect
 
         }
 
-        public static class PSSessionScripts
+        public static class SessionScripts
         {
             internal const string RemovePSSession = "Remove-PSSession";
             internal const string ImportPSSession = "Import-PSSession";
 
             internal const string AllowRedirectionInNewPSSession = " -AllowRedirection";
 
-            internal const string NewPSSessionScriptWithBasicAuth = "New-PSSession -ConfigurationName:{0} -Authentication:Basic -ConnectionUri:{1} -Credential $" + Constants.PSVariableNameStrings.Credential;
+            internal const string NewPSSessionScriptWithBasicAuth = "New-PSSession -ConfigurationName:{0} -Authentication:Basic -ConnectionUri:{1} -Credential $" + Constants.VariableNameStrings.Credential;
 
-            internal const string NewPSSessionScriptWithDefaultAuth = "New-PSSession -ConfigurationName:{0} -ConnectionUri:{1} -Credential $" + Constants.PSVariableNameStrings.Credential;
+            internal const string NewPSSessionScriptWithDefaultAuth = "New-PSSession -ConfigurationName:{0} -ConnectionUri:{1} -Credential $" + Constants.VariableNameStrings.Credential;
 
         }
 
@@ -81,7 +79,7 @@ Write-Verbose $ScriptBlockString -Verbose
 Write-Verbose $ScriptBlock.ToString() -Verbose
 
 
-$CommandInfoProxyArray = @()
+$CmdInfoArray = @()
 
 if($Session -ne $null)
 {
@@ -102,94 +100,94 @@ foreach($CommandInfo in $CommandInfos)
     #Write-Verbose $CommandInfo.ToString() -Verbose
     $commandType = [System.Management.Automation.CommandTypes]$CommandInfo.CommandType
 
-    $CommandInfoProxy = New-Object -TypeName PSObject -Property @{'IsRemoteCommand' = [bool]$true; 'CmdletBinding' = [bool]$false;[string]'CommandType'=$null;'DefaultParameterSet'=$null;'Definition'=$null;'Description'=$null;'HelpFile'=$null;'HelpUri'=$null;'ImplementingType'=$null;'Module'=$null;'ModuleName'=$null;'Name'=$null;'Noun'=$null;'Options'=$null;'OriginalEncoding'=$null;'OutputType'=$null;'Parameters'=$null;'ParameterSets'=$null;'Path'=$null;'PSSnapIn'=$null;'ReferencedCommand'=$null;'RemotingCapability'=$null;'ResolvedCommand'=$null;'ScriptBlock'=$null;'ScriptContents'=$null;'Verb'=$null;'Visibility'=$null;}
+    $CmdInfo = New-Object -TypeName PSObject -Property @{'IsRemoteCommand' = [bool]$true; 'CmdletBinding' = [bool]$false;[string]'CommandType'=$null;'DefaultParameterSet'=$null;'Definition'=$null;'Description'=$null;'HelpFile'=$null;'HelpUri'=$null;'ImplementingType'=$null;'Module'=$null;'ModuleName'=$null;'Name'=$null;'Noun'=$null;'Options'=$null;'OriginalEncoding'=$null;'OutputType'=$null;'Parameters'=$null;'ParameterSets'=$null;'Path'=$null;'PSSnapIn'=$null;'ReferencedCommand'=$null;'RemotingCapability'=$null;'ResolvedCommand'=$null;'ScriptBlock'=$null;'ScriptContents'=$null;'Verb'=$null;'Visibility'=$null;}
         
-    $CommandInfoProxy.IsRemoteCommand = -not($CommandInfo -is [System.Management.Automation.CommandInfo])
-    $CommandInfoProxy.Name = $CommandInfo.Name
-    $CommandInfoProxy.CommandType = [string]$CommandInfo.CommandType
-    $CommandInfoProxy.Definition = $CommandInfo.Definition
-    if($CommandInfo.Module){$CommandInfoProxy.Module = $CommandInfo.Module.Name}
-    $CommandInfoProxy.ModuleName = $CommandInfo.ModuleName
+    $CmdInfo.IsRemoteCommand = -not($CommandInfo -is [System.Management.Automation.CommandInfo])
+    $CmdInfo.Name = $CommandInfo.Name
+    $CmdInfo.CommandType = [string]$CommandInfo.CommandType
+    $CmdInfo.Definition = $CommandInfo.Definition
+    if($CommandInfo.Module){$CmdInfo.Module = $CommandInfo.Module.Name}
+    $CmdInfo.ModuleName = $CommandInfo.ModuleName
     [string[]]$parameterssets = 
-    if($CommandInfo.ParameterSets){[string[]]$CommandInfoProxy.ParameterSets  = $CommandInfo.ParameterSets | %{$_.ToString()}}
+    if($CommandInfo.ParameterSets){[string[]]$CmdInfo.ParameterSets  = $CommandInfo.ParameterSets | %{$_.ToString()}}
     [string[]]$parameters = @()
     ($CommandInfo.Parameters).Keys | %{$parameters += $_.ToString()}
-    if($CommandInfo.Parameters){$CommandInfoProxy.Parameters  = $parameters}
-    #$CommandInfoProxy.RemotingCapability  = [System.Management.Automation.RemotingCapability]$CommandInfo.RemotingCapability
-    if($CommandInfo.RemotingCapability){$CommandInfoProxy.RemotingCapability  = $CommandInfo.RemotingCapability.ToString()}
+    if($CommandInfo.Parameters){$CmdInfo.Parameters  = $parameters}
+    #$CmdInfo.RemotingCapability  = [System.Management.Automation.RemotingCapability]$CommandInfo.RemotingCapability
+    if($CommandInfo.RemotingCapability){$CmdInfo.RemotingCapability  = $CommandInfo.RemotingCapability.ToString()}
 
-    #$CommandInfoProxy.OutputType = $CommandInfo.OutputType
-    if($CommandInfo.OutputType){ $CommandInfoProxy.OutputType  = ($CommandInfo.OutputType  | %{$_.ToString()}) }
+    #$CmdInfo.OutputType = $CommandInfo.OutputType
+    if($CommandInfo.OutputType){ $CmdInfo.OutputType  = ($CommandInfo.OutputType  | %{$_.ToString()}) }
     
-    #$CommandInfoProxy.Visibility = [System.Management.Automation.SessionStateEntryVisibility]$CommandInfo.Visibility
-    if($CommandInfo.Visibility){$CommandInfoProxy.Visibility = $CommandInfo.Visibility.ToString()}
+    #$CmdInfo.Visibility = [System.Management.Automation.SessionStateEntryVisibility]$CommandInfo.Visibility
+    if($CommandInfo.Visibility){$CmdInfo.Visibility = $CommandInfo.Visibility.ToString()}
     
         
     if( $commandType -eq [System.Management.Automation.CommandTypes]::Alias)
     {
-        if($CommandInfo.Noun){$CommandInfoProxy.Noun  = $CommandInfo.Noun}
-        #$CommandInfoProxy.Options = [System.Management.Automation.ScopedItemOptions]$CommandInfo.Options
-        if($CommandInfo.Options){$CommandInfoProxy.Options = $CommandInfo.Options.ToString()}
-        $CommandInfoProxy.Description  = $CommandInfo.Description            
+        if($CommandInfo.Noun){$CmdInfo.Noun  = $CommandInfo.Noun}
+        #$CmdInfo.Options = [System.Management.Automation.ScopedItemOptions]$CommandInfo.Options
+        if($CommandInfo.Options){$CmdInfo.Options = $CommandInfo.Options.ToString()}
+        $CmdInfo.Description  = $CommandInfo.Description            
 
-        if($CommandInfo.ReferencedCommand){$CommandInfoProxy.ReferencedCommand  = $CommandInfo.ReferencedCommand.ToString()}
-        if($CommandInfo.ResolvedCommand){$CommandInfoProxy.ResolvedCommand  = $CommandInfo.ResolvedCommand.ToString()}
+        if($CommandInfo.ReferencedCommand){$CmdInfo.ReferencedCommand  = $CommandInfo.ReferencedCommand.ToString()}
+        if($CommandInfo.ResolvedCommand){$CmdInfo.ResolvedCommand  = $CommandInfo.ResolvedCommand.ToString()}
     }
 
         
     if( $commandType -eq [System.Management.Automation.CommandTypes]::Cmdlet)
     {
-        if($CommandInfo.Noun){$CommandInfoProxy.Noun  = $CommandInfo.Noun}
-        #$CommandInfoProxy.Options = [System.Management.Automation.ScopedItemOptions]$CommandInfo.Options
-        if($CommandInfo.Options){$CommandInfoProxy.Options = $CommandInfo.Options.ToString()}
+        if($CommandInfo.Noun){$CmdInfo.Noun  = $CommandInfo.Noun}
+        #$CmdInfo.Options = [System.Management.Automation.ScopedItemOptions]$CommandInfo.Options
+        if($CommandInfo.Options){$CmdInfo.Options = $CommandInfo.Options.ToString()}
 
-        $CommandInfoProxy.DefaultParameterSet  = $CommandInfo.DefaultParameterSet            
-        $CommandInfoProxy.HelpFile  = $CommandInfo.HelpFile
-        if($CommandInfo.HelpUri){$CommandInfoProxy.HelpUri  = $CommandInfo.HelpUri.ToString().Trim()}
-        $CommandInfoProxy.Verb  = $CommandInfo.Verb        
+        $CmdInfo.DefaultParameterSet  = $CommandInfo.DefaultParameterSet            
+        $CmdInfo.HelpFile  = $CommandInfo.HelpFile
+        if($CommandInfo.HelpUri){$CmdInfo.HelpUri  = $CommandInfo.HelpUri.ToString().Trim()}
+        $CmdInfo.Verb  = $CommandInfo.Verb        
 
-        if($CommandInfo.ImplementingType){$CommandInfoProxy.ImplementingType  = $CommandInfo.ImplementingType.ToString()}
-        if($CommandInfo.PSSnapIn){$CommandInfoProxy.PSSnapIn  = $CommandInfo.PSSnapIn.ToString()}
+        if($CommandInfo.ImplementingType){$CmdInfo.ImplementingType  = $CommandInfo.ImplementingType.ToString()}
+        if($CommandInfo.PSSnapIn){$CmdInfo.PSSnapIn  = $CommandInfo.PSSnapIn.ToString()}
     }
 
     if( $commandType -eq [System.Management.Automation.CommandTypes]::ExternalScript)
     {        
-        if($CommandInfo.ScriptBlock){$CommandInfoProxy.ScriptBlock  = $CommandInfo.ScriptBlock.ToString()}
+        if($CommandInfo.ScriptBlock){$CmdInfo.ScriptBlock  = $CommandInfo.ScriptBlock.ToString()}
         
-        if($CommandInfo.OriginalEncoding){$CommandInfoProxy.OriginalEncoding  = $CommandInfo.OriginalEncoding.ToString()}
-        $CommandInfoProxy.Path  = $CommandInfo.Path
-        $CommandInfoProxy.ScriptContents  = $CommandInfo.ScriptContents
+        if($CommandInfo.OriginalEncoding){$CmdInfo.OriginalEncoding  = $CommandInfo.OriginalEncoding.ToString()}
+        $CmdInfo.Path  = $CommandInfo.Path
+        $CmdInfo.ScriptContents  = $CommandInfo.ScriptContents
     }
     
     if( $commandType -eq [System.Management.Automation.CommandTypes]::Function)
     {
-        if($CommandInfo.Noun){$CommandInfoProxy.Noun  = $CommandInfo.Noun}
-        #$CommandInfoProxy.Options = [System.Management.Automation.ScopedItemOptions]$CommandInfo.Options
-        if($CommandInfo.Options){$CommandInfoProxy.Options = $CommandInfo.Options.ToString()}
+        if($CommandInfo.Noun){$CmdInfo.Noun  = $CommandInfo.Noun}
+        #$CmdInfo.Options = [System.Management.Automation.ScopedItemOptions]$CommandInfo.Options
+        if($CommandInfo.Options){$CmdInfo.Options = $CommandInfo.Options.ToString()}
 
-        if($CommandInfo.ScriptBlock){$CommandInfoProxy.ScriptBlock  = $CommandInfo.ScriptBlock.ToString()}
+        if($CommandInfo.ScriptBlock){$CmdInfo.ScriptBlock  = $CommandInfo.ScriptBlock.ToString()}
 
-        $CommandInfoProxy.DefaultParameterSet  = $CommandInfo.DefaultParameterSet            
-        $CommandInfoProxy.HelpFile  = $CommandInfo.HelpFile
-        if($CommandInfo.HelpUri){$CommandInfoProxy.HelpUri  = $CommandInfo.HelpUri.ToString()}
-        $CommandInfoProxy.Verb  = $CommandInfo.Verb        
+        $CmdInfo.DefaultParameterSet  = $CommandInfo.DefaultParameterSet            
+        $CmdInfo.HelpFile  = $CommandInfo.HelpFile
+        if($CommandInfo.HelpUri){$CmdInfo.HelpUri  = $CommandInfo.HelpUri.ToString()}
+        $CmdInfo.Verb  = $CommandInfo.Verb        
 
-        $CommandInfoProxy.Description  = $CommandInfo.Description            
+        $CmdInfo.Description  = $CommandInfo.Description            
 
-        $CommandInfoProxy.CmdletBinding  = [bool]$CommandInfo.CmdletBinding            
+        $CmdInfo.CmdletBinding  = [bool]$CommandInfo.CmdletBinding            
     }
 
     
     if( $commandType -eq [System.Management.Automation.CommandTypes]::Script)
     {
         
-        if($CommandInfo.ScriptBlock){$CommandInfoProxy.ScriptBlock  = $CommandInfo.ScriptBlock.ToString()}
+        if($CommandInfo.ScriptBlock){$CmdInfo.ScriptBlock  = $CommandInfo.ScriptBlock.ToString()}
     }
 
         
-    $CommandInfoProxyArray += $CommandInfoProxy
+    $CmdInfoArray += $CmdInfo
 }
-return $CommandInfoProxyArray
+return $CmdInfoArray
 ";
 
             internal const string GetCommandScript = @"
@@ -244,7 +242,7 @@ Write-Verbose $TotalCount -Verbose
 #Write-Verbose $ScriptBlock.ToString() -Verbose
 
 
-$CommandInfoProxyArray = @()
+$CmdInfoArray = @()
 
 if($Session -ne $null)
 {
@@ -277,100 +275,142 @@ foreach($CommandInfo in $CommandInfos)
     if($useType)
     {
         #Write-Verbose 'using Types' -Verbose
-        $CommandInfoProxy = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.PSCommandInfoProxy
+        $CmdInfo = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.CmdInfo
     }
     else
     {
-        $CommandInfoProxy = New-Object -TypeName PSObject -Property @{'IsRemoteCommand' = [bool]$true; 'CmdletBinding' = [bool]$false;[string]'CommandType'=$null;'DefaultParameterSet'=$null;'Definition'=$null;'Description'=$null;'HelpFile'=$null;'HelpUri'=$null;'ImplementingType'=$null;'Module'=$null;'ModuleName'=$null;'Name'=$null;'NameLower'=$null;'Noun'=$null;'Options'=$null;'OriginalEncoding'=$null;'OutputType'=$null;'Parameters'=$null;'ParameterSets'=$null;'Path'=$null;'PSSnapIn'=$null;'ReferencedCommand'=$null;'RemotingCapability'=$null;'ResolvedCommand'=$null;'ScriptBlock'=$null;'ScriptContents'=$null;'Verb'=$null;'Visibility'=$null;}
+        $CmdInfo = New-Object -TypeName PSObject -Property @{'IsRemoteCommand' = [bool]$true; 'CmdletBinding' = [bool]$false;[string]'CommandType'=$null;'DefaultParameterSet'=$null;'Definition'=$null;'Description'=$null;'HelpFile'=$null;'HelpUri'=$null;'ImplementingType'=$null;'Module'=$null;'ModuleName'=$null;'Name'=$null;'NameLower'=$null;'Noun'=$null;'Options'=$null;'OriginalEncoding'=$null;'OutputType'=[Collections.Generic.List[String]]::new();'Parameters'=[Collections.Generic.List[String]]::new();'ParameterSets'=[Collections.Generic.List[String]]::new();'Path'=$null;'PSSnapIn'=$null;'ReferencedCommand'=$null;'RemotingCapability'=$null;'ResolvedCommand'=$null;'ScriptBlock'=$null;'ScriptContents'=$null;'Verb'=$null;'Visibility'=$null;}
     }
     
         
-    $CommandInfoProxy.IsRemoteCommand = -not($CommandInfo -is [System.Management.Automation.CommandInfo])
-    $CommandInfoProxy.Name = $CommandInfo.Name
-    $CommandInfoProxy.NameLower = $CommandInfo.Name.ToLower()
-    $CommandInfoProxy.CommandType = [string]$CommandInfo.CommandType
-    $CommandInfoProxy.Definition = $CommandInfo.Definition
-    if($CommandInfo.Module){$CommandInfoProxy.Module = $CommandInfo.Module.Name}
-    $CommandInfoProxy.ModuleName = $CommandInfo.ModuleName
-    [string[]]$parameterssets = @()
-    if($CommandInfo.ParameterSets){[string[]]$CommandInfoProxy.ParameterSets  = $CommandInfo.ParameterSets | %{$_.ToString()}}    
-    [string[]]$parameters = @()
-    if($CommandInfo.Parameters){($CommandInfo.Parameters).Keys | %{$parameters += $_.ToString()};$CommandInfoProxy.Parameters  = $parameters}
-    #$CommandInfoProxy.RemotingCapability  = [System.Management.Automation.RemotingCapability]$CommandInfo.RemotingCapability
-    if($CommandInfo.RemotingCapability){$CommandInfoProxy.RemotingCapability  = $CommandInfo.RemotingCapability.ToString()}
-
-    #$CommandInfoProxy.OutputType = $CommandInfo.OutputType
-    if($CommandInfo.OutputType){ $CommandInfoProxy.OutputType  = ($CommandInfo.OutputType  | %{$_.ToString()}) }
+    $CmdInfo.IsRemoteCommand = -not($CommandInfo -is [System.Management.Automation.CommandInfo])
+    $CmdInfo.Name = $CommandInfo.Name
+    $CmdInfo.NameLower = $CommandInfo.Name.ToLower()
+    $CmdInfo.CommandType = [string]$CommandInfo.CommandType
+    $CmdInfo.Definition = $CommandInfo.Definition
+    if($CommandInfo.Module){$CmdInfo.Module = $CommandInfo.Module.Name}
+    $CmdInfo.ModuleName = $CommandInfo.ModuleName
     
-    #$CommandInfoProxy.Visibility = [System.Management.Automation.SessionStateEntryVisibility]$CommandInfo.Visibility
-    if($CommandInfo.Visibility){$CommandInfoProxy.Visibility = $CommandInfo.Visibility.ToString()}
+    if($CommandInfo.ParameterSets){
+        $CommandInfo.ParameterSets | %{
+            $CmdInfo.ParameterSets.Add($_.ToString())
+            #$set = $_;
+            #$paramset = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.CmdParameterSetInfo
+            #$paramset.Name = $set.Name;
+            #$paramset.NameLower = $set.Name.ToLower();
+            #$paramset.IsDefault = $set.IsDefault;
+            #$paramset.ToStringValue = $set.ToString()
+            #if($set.Parameters){
+            #    $set.Parameters | %{
+            #        $setparam = $_;
+            #        $param = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.CmdParameterInfo;
+            #        $param.Name = $setparam.Name;
+            #        $param.NameLower = $param.Name.ToLower();
+            #        $param.ParameterType = $setparam.ParameterType.Name;
+            #        if($setparam.ParameterType.IsEnum){
+            #            $param.ValidateSetValues.AddRange($setparam.ParameterType.GetEnumNames());
+            #        }
+            #        $param.IsMandatory = $setparam.IsMandatory;
+            #        $param.IsDynamic = $setparam.IsDynamic;
+            #        $param.ValueFromPipeline = $setparam.ValueFromPipeline;
+            #        $param.SwitchParameter = $setparam.ParameterType -eq [System.Management.Automation.SwitchParameter]
+            #        $paramset.Parameters.Add($param);
+            #    }
+            #}
+            #$CmdInfo.CmdParameterSets.Add($paramset);
+        }
+    }    
+    
+    if($CommandInfo.Parameters){
+        ($CommandInfo.Parameters).Keys | %{
+            $CmdInfo.Parameters.Add($_.ToString());
+            #$cmdparam = $CommandInfo.Parameters[$_];
+            #$param = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.CmdParameterInfo;
+            #$param.Name = $cmdparam.Name;
+            #$param.NameLower = $cmdparam.Name.ToLower();
+            #$param.ParameterType = $cmdparam.ParameterType.Name;
+            #if($cmdparam.ParameterType.IsEnum){
+            #    $param.ValidateSetValues.AddRange($cmdparam.ParameterType.GetEnumNames());
+            #}
+            #$param.IsDynamic = $cmdparam.IsDynamic;
+            #$param.SwitchParameter = $cmdparam.SwitchParameter
+            #$CmdInfo.CmdParameters.Add($param);
+        }
+    }
+    #$CmdInfo.RemotingCapability  = [System.Management.Automation.RemotingCapability]$CommandInfo.RemotingCapability
+    if($CommandInfo.RemotingCapability){$CmdInfo.RemotingCapability  = $CommandInfo.RemotingCapability.ToString()}
+
+    if($CommandInfo.OutputType){$CommandInfo.OutputType  | %{$CmdInfo.OutputType.Add($_.ToString())}}
+    
+    #$CmdInfo.Visibility = [System.Management.Automation.SessionStateEntryVisibility]$CommandInfo.Visibility
+    if($CommandInfo.Visibility){$CmdInfo.Visibility = $CommandInfo.Visibility.ToString()}
     
         
     if( $commandType -eq [System.Management.Automation.CommandTypes]::Alias)
     {
-        if($CommandInfo.Noun){$CommandInfoProxy.Noun  = $CommandInfo.Noun}
-        #$CommandInfoProxy.Options = [System.Management.Automation.ScopedItemOptions]$CommandInfo.Options
-        if($CommandInfo.Options){$CommandInfoProxy.Options = $CommandInfo.Options.ToString()}
-        $CommandInfoProxy.Description  = $CommandInfo.Description            
+        if($CommandInfo.Noun){$CmdInfo.Noun  = $CommandInfo.Noun}
+        #$CmdInfo.Options = [System.Management.Automation.ScopedItemOptions]$CommandInfo.Options
+        if($CommandInfo.Options){$CmdInfo.Options = $CommandInfo.Options.ToString()}
+        $CmdInfo.Description  = $CommandInfo.Description            
 
-        if($CommandInfo.ReferencedCommand){$CommandInfoProxy.ReferencedCommand  = $CommandInfo.ReferencedCommand.ToString()}
-        if($CommandInfo.ResolvedCommand){$CommandInfoProxy.ResolvedCommand  = $CommandInfo.ResolvedCommand.ToString()}
+        if($CommandInfo.ReferencedCommand){$CmdInfo.ReferencedCommand  = $CommandInfo.ReferencedCommand.ToString()}
+        if($CommandInfo.ResolvedCommand){$CmdInfo.ResolvedCommand  = $CommandInfo.ResolvedCommand.ToString()}
     }
 
         
     if( $commandType -eq [System.Management.Automation.CommandTypes]::Cmdlet)
     {
-        if($CommandInfo.Noun){$CommandInfoProxy.Noun  = $CommandInfo.Noun}
-        #$CommandInfoProxy.Options = [System.Management.Automation.ScopedItemOptions]$CommandInfo.Options
-        if($CommandInfo.Options){$CommandInfoProxy.Options = $CommandInfo.Options.ToString()}
+        if($CommandInfo.Noun){$CmdInfo.Noun  = $CommandInfo.Noun}
+        #$CmdInfo.Options = [System.Management.Automation.ScopedItemOptions]$CommandInfo.Options
+        if($CommandInfo.Options){$CmdInfo.Options = $CommandInfo.Options.ToString()}
 
-        $CommandInfoProxy.DefaultParameterSet  = $CommandInfo.DefaultParameterSet            
-        $CommandInfoProxy.HelpFile  = $CommandInfo.HelpFile
-        if($CommandInfo.HelpUri){$CommandInfoProxy.HelpUri  = $CommandInfo.HelpUri.ToString().Trim()}
-        $CommandInfoProxy.Verb  = $CommandInfo.Verb        
+        $CmdInfo.DefaultParameterSet  = $CommandInfo.DefaultParameterSet            
+        $CmdInfo.HelpFile  = $CommandInfo.HelpFile
+        if($CommandInfo.HelpUri){$CmdInfo.HelpUri  = $CommandInfo.HelpUri.ToString().Trim()}
+        $CmdInfo.Verb  = $CommandInfo.Verb        
 
-        if($CommandInfo.ImplementingType){$CommandInfoProxy.ImplementingType  = $CommandInfo.ImplementingType.ToString()}
-        if($CommandInfo.PSSnapIn){$CommandInfoProxy.PSSnapIn  = $CommandInfo.PSSnapIn.ToString()}
+        if($CommandInfo.ImplementingType){$CmdInfo.ImplementingType  = $CommandInfo.ImplementingType.ToString()}
+        if($CommandInfo.PSSnapIn){$CmdInfo.PSSnapIn  = $CommandInfo.PSSnapIn.ToString()}
     }
 
     if( $commandType -eq [System.Management.Automation.CommandTypes]::ExternalScript)
     {        
-        if($CommandInfo.ScriptBlock){$CommandInfoProxy.ScriptBlock  = $CommandInfo.ScriptBlock.ToString()}
+        if($CommandInfo.ScriptBlock){$CmdInfo.ScriptBlock  = $CommandInfo.ScriptBlock.ToString()}
         
-        if($CommandInfo.OriginalEncoding){$CommandInfoProxy.OriginalEncoding  = $CommandInfo.OriginalEncoding.ToString()}
-        $CommandInfoProxy.Path  = $CommandInfo.Path
-        $CommandInfoProxy.ScriptContents  = $CommandInfo.ScriptContents
+        if($CommandInfo.OriginalEncoding){$CmdInfo.OriginalEncoding  = $CommandInfo.OriginalEncoding.ToString()}
+        $CmdInfo.Path  = $CommandInfo.Path
+        $CmdInfo.ScriptContents  = $CommandInfo.ScriptContents
     }
     
     if( $commandType -eq [System.Management.Automation.CommandTypes]::Function)
     {
-        if($CommandInfo.Noun){$CommandInfoProxy.Noun  = $CommandInfo.Noun}
-        #$CommandInfoProxy.Options = [System.Management.Automation.ScopedItemOptions]$CommandInfo.Options
-        if($CommandInfo.Options){$CommandInfoProxy.Options = $CommandInfo.Options.ToString()}
+        if($CommandInfo.Noun){$CmdInfo.Noun  = $CommandInfo.Noun}
+        #$CmdInfo.Options = [System.Management.Automation.ScopedItemOptions]$CommandInfo.Options
+        if($CommandInfo.Options){$CmdInfo.Options = $CommandInfo.Options.ToString()}
 
-        if($CommandInfo.ScriptBlock){$CommandInfoProxy.ScriptBlock  = $CommandInfo.ScriptBlock.ToString()}
+        if($CommandInfo.ScriptBlock){$CmdInfo.ScriptBlock  = $CommandInfo.ScriptBlock.ToString()}
 
-        $CommandInfoProxy.DefaultParameterSet  = $CommandInfo.DefaultParameterSet            
-        $CommandInfoProxy.HelpFile  = $CommandInfo.HelpFile
-        if($CommandInfo.HelpUri){$CommandInfoProxy.HelpUri  = $CommandInfo.HelpUri.ToString()}
-        $CommandInfoProxy.Verb  = $CommandInfo.Verb        
+        $CmdInfo.DefaultParameterSet  = $CommandInfo.DefaultParameterSet            
+        $CmdInfo.HelpFile  = $CommandInfo.HelpFile
+        if($CommandInfo.HelpUri){$CmdInfo.HelpUri  = $CommandInfo.HelpUri.ToString()}
+        $CmdInfo.Verb  = $CommandInfo.Verb        
 
-        $CommandInfoProxy.Description  = $CommandInfo.Description            
+        $CmdInfo.Description  = $CommandInfo.Description            
 
-        $CommandInfoProxy.CmdletBinding  = [bool]$CommandInfo.CmdletBinding            
+        $CmdInfo.CmdletBinding  = [bool]$CommandInfo.CmdletBinding            
     }
 
     
     if( $commandType -eq [System.Management.Automation.CommandTypes]::Script)
     {
         
-        if($CommandInfo.ScriptBlock){$CommandInfoProxy.ScriptBlock  = $CommandInfo.ScriptBlock.ToString()}
+        if($CommandInfo.ScriptBlock){$CmdInfo.ScriptBlock  = $CommandInfo.ScriptBlock.ToString()}
     }
 
-    #$CommandInfoProxy
-    $CommandInfoProxyArray += $CommandInfoProxy
+    #$CmdInfo
+    $CmdInfoArray += $CmdInfo
 }
-return $CommandInfoProxyArray
+return $CmdInfoArray
 ";
 
             internal const string GetHelpScriptOld = @"
@@ -563,7 +603,7 @@ $EntitiesFile = ''
 
     if($useType)
     {        
-        $h = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.PSCommandHelp
+        $h = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.CmdHelp
         $h.Category = ($help.Category | Out-String -Width 10000).Trim()
         $h.Component = ($help.Component | Out-String -Width 10000).Trim()
         $h.Description = ($help.description | Out-String -Width 10000).Trim()
@@ -586,22 +626,22 @@ $EntitiesFile = ''
         #$h.PSCmdletHelpExamples = 
         foreach($e in $help.examples.example)
         {
-            $ex = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.PSCommandHelpExample
+            $ex = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.CmdHelpExample
             $ex.Code = ($e.code | Out-String -Width 10000).Trim()
             $ex.CommandLines = ($e.commandLines.commandLine.commandText | Out-String -Width 10000).Trim()
             $ex.Introduction = ($e.introduction | Out-String -Width 10000).Trim()
             $ex.Remarks = ($e.remarks | Out-String -Width 10000).Trim()
             $ex.Title = ($e.title | Out-String -Width 10000).Trim()
-            $ex.ExampleFullText = ($e | Out-String -Width 10000).Trim()
+            $ex.FullText = ($e | Out-String -Width 10000).Trim()
             
-            $h.PSCommandHelpExamples.Add($ex)
+            $h.HelpExamples.Add($ex)
         }
         
         #$h.PSCmdletHelpParameters = 
         foreach($p in $help.parameters.parameter)
         {
             #Write-Verbose $p.name -Verbose
-            $pi = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.PSCommandHelpParameter
+            $pi = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.CmdHelpParameter
             $pi.DefaultValue = ($p.defaultValue | Out-String  -Width 10000).Trim()
             $pi.Description = ($p.description | Out-String  -Width 10000).Trim()
             $pi.Globbing = $p.globbing
@@ -612,19 +652,19 @@ $EntitiesFile = ''
             $pi.Required = $p.required.ToBoolean($null)
             $pi.Type = ($p.type.name | Out-String  -Width 10000).Trim()
             $pi.VariableLength = $p.variableLength.ToBoolean($null)
-            $h.PSCommandHelpParameters.Add($pi)
+            $h.HelpParameters.Add($pi)
         }
 
         #$h.PSCmdletHelpSyntaxes = 
         foreach($s in $help.syntax.syntaxItem)
         {
-            $sx = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.PSCommandHelpSyntax
+            $sx = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.CmdHelpSyntax
             $sx.Name = ($s.name | Out-String -Width 10000).Trim()
             #$sx.Syntax
             $i=0;
             foreach($sp in $s.parameter)
             {
-                $sxi = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.PSCommandHelpSyntaxParameter
+                $sxi = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.CmdHelpSyntaxParameter
                 $sxi.Name = $sp.name
                 $sxi.ParameterValue = $sp.parameterValue                
                 $sxi.PipelineInput = ParseBool -str $sp.pipelineInput -indexOfTrue $true -nullable $true
@@ -632,9 +672,9 @@ $EntitiesFile = ''
                 $sxi.Position = $sp.position
                 $sxi.Required = $sp.required.ToBoolean($null)
                 
-                $sx.PSCommandHelpSyntaxParameters.Add($sxi)                
+                $sx.SyntaxParameters.Add($sxi)                
             }
-            $h.PSCommandHelpSyntaxes.Add($sx)
+            $h.HelpSyntaxes.Add($sx)
         }
     }
     else
@@ -786,7 +826,7 @@ $EntitiesFile = ''
 
         }
 
-        public static class PSVariableNameStrings
+        public static class VariableNameStrings
         {
 
             internal const string Credential = "cred";
@@ -795,7 +835,7 @@ $EntitiesFile = ''
 
         }
 
-        public static class PSParameterNameStrings
+        public static class ParameterNameStrings
         {
 
             internal const string Name = "Name";
@@ -810,7 +850,7 @@ $EntitiesFile = ''
 
         }
 
-        public static class PSParameterValueString
+        public static class ParameterValueString
         {
 
             internal const string AllPowerShellNative = "Cmdlet,Function,Script,ExternalScript";

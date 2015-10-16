@@ -15,7 +15,7 @@ using System.Timers;
 
 namespace PowerShellPowered.PowerShellConnect
 {
-    public class PowerShellConnection : IDisposable
+    public class ShellConnection : IDisposable
     {
         private Runspace _runspace;
         private Runspace _remoteSessionLocalRunspaceForDefultRunspace;
@@ -25,8 +25,8 @@ namespace PowerShellPowered.PowerShellConnect
         private string UserName;
         private SecureString Password;
         private int MaxRedirectionCount;
-        //public PowerShellRunspaceMode RunspaceMode { get; private set; }
-        public PowerShellRunspaceMode RunspaceMode { get; set; }
+        //public RunspaceMode RunspaceMode { get; private set; }
+        public RunspaceMode RunspaceMode { get; set; }
         public AuthenticationMechanism AauthenticationMechanism { get; private set; }
         internal ExecutionRunspace ExecutionRunspace;
         public bool RunspaceCreated { get; private set; }
@@ -42,7 +42,7 @@ namespace PowerShellPowered.PowerShellConnect
         public Dictionary<string, object> DefinedInitialVariables { get; set; }
 
 
-        public PowerShellConnection(string connectionUri, string configSchemaUri, string userName, SecureString securePassword, PowerShellRunspaceMode runspaceMode = PowerShellRunspaceMode.RemoteRunspace, int maxRedirectionCount = 0, AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.Basic)
+        public ShellConnection(string connectionUri, string configSchemaUri, string userName, SecureString securePassword, RunspaceMode runspaceMode = RunspaceMode.RemoteRunspace, int maxRedirectionCount = 0, AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.Basic)
             : this()
         {
             ConnectionUri = connectionUri;
@@ -53,7 +53,7 @@ namespace PowerShellPowered.PowerShellConnect
             this.AauthenticationMechanism = authenticationMechanism;
             MaxRedirectionCount = maxRedirectionCount;
         }
-        public PowerShellConnection(string userName = "", SecureString securePassword = null, PowerShellRunspaceMode runspacemode = PowerShellRunspaceMode.LocalRunspace, AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.NegotiateWithImplicitCredential)
+        public ShellConnection(string userName = "", SecureString securePassword = null, RunspaceMode runspacemode = RunspaceMode.LocalRunspace, AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.NegotiateWithImplicitCredential)
         {
             this.RunspaceMode = runspacemode;
             this.AauthenticationMechanism = authenticationMechanism;
@@ -62,7 +62,7 @@ namespace PowerShellPowered.PowerShellConnect
             ImportedModuleList = new List<string>();
             DefinedInitialVariables = new Dictionary<string, object>();
         }
-        public PowerShellConnection(string connectionUri, string configSchemaUri, string certificateThumbprint, PowerShellRunspaceMode runspaceMode = PowerShellRunspaceMode.RemoteRunspace, int maxRedirectionCount = 0, AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.Credssp)
+        public ShellConnection(string connectionUri, string configSchemaUri, string certificateThumbprint, RunspaceMode runspaceMode = RunspaceMode.RemoteRunspace, int maxRedirectionCount = 0, AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.Credssp)
             : this()
         {
             ConnectionUri = connectionUri;
@@ -72,7 +72,7 @@ namespace PowerShellPowered.PowerShellConnect
             this.AauthenticationMechanism = authenticationMechanism;
             MaxRedirectionCount = maxRedirectionCount;
         }
-        ~PowerShellConnection()
+        ~ShellConnection()
         {
             RemoveRunspace();
         }
@@ -89,7 +89,7 @@ namespace PowerShellPowered.PowerShellConnect
             CleanUpTimer.Elapsed += (o, e) => { ClenupUnusedSecondaryConnection(); };
 
 
-            if (RunspaceCreated && !force) throw new RemoteException("Runspace already created, please create new instance of PowerShellConnection");
+            if (RunspaceCreated && !force) throw new RemoteException("Runspace already created, please create new instance of ShellConnection");
             else if (RunspaceCreated)
                 RemoveRunspace();
 
@@ -101,7 +101,7 @@ namespace PowerShellPowered.PowerShellConnect
 
         internal void ClenupUnusedSecondaryConnection()
         {
-            if (RunspaceMode == PowerShellRunspaceMode.RemoteRunspace && ExecutionRunspace.PSSession != null)
+            if (RunspaceMode == RunspaceMode.RemoteRunspace && ExecutionRunspace.PSSession != null)
                 ExecutionRunspace.Dispose();
 
         }
@@ -410,25 +410,25 @@ namespace PowerShellPowered.PowerShellConnect
             modules.ToList().ForEach((x) => { if (ImportedModuleList.Contains(x)) { ImportedModuleList.Remove(x); } });
         }
 
-        public Collection<PSModuleInfoProxy> GetModuleInformation(string[] modules = null, bool listavailable = false, Action<PSDataStreams> psDataStreamAction = null)
+        public Collection<ModuleInfo> GetModuleInformation(string[] modules = null, bool listavailable = false, Action<PSDataStreams> psDataStreamAction = null)
         {
             Dictionary<string, object> cmdparams = new Dictionary<string, object>();
             if (modules != null) cmdparams.Add("Name", modules);
             if (listavailable) cmdparams.Add("ListAvailable", null);
 
-            Collection<PSModuleInfoProxy> result = new Collection<PSModuleInfoProxy>();
+            Collection<ModuleInfo> result = new Collection<ModuleInfo>();
 
-            result = GetModuleInfoProxyCollection(ExecuteCommand<PSModuleInfo>("Get-Module", cmdparams, false, psDataStreamAction));
+            result = GetModuleInfoCollection(ExecuteCommand<PSModuleInfo>("Get-Module", cmdparams, false, psDataStreamAction));
 
             return result;
         }
 
-        private Collection<PSModuleInfoProxy> GetModuleInfoProxyCollection(Collection<PSModuleInfo> moduleinfoInfoCollection)
+        private Collection<ModuleInfo> GetModuleInfoCollection(Collection<PSModuleInfo> moduleinfoInfoCollection)
         {
-            Collection<PSModuleInfoProxy> _result = new Collection<PSModuleInfoProxy>();
+            Collection<ModuleInfo> _result = new Collection<ModuleInfo>();
             foreach (PSModuleInfo moduleinfo in moduleinfoInfoCollection)
             {
-                _result.Add(moduleinfo.ToPSModuleInfoProxy());
+                _result.Add(moduleinfo.ToModuleInfo());
 
                 //try
                 //{
@@ -441,29 +441,29 @@ namespace PowerShellPowered.PowerShellConnect
             return _result;
         }
 
-        public Collection<PSCommandInfoProxy> GetCommandCollection(string[] cmdletArray = null, int totalCount = -1, string[] module = null, bool skipmodule = false, PowerShellCommandTypes commandType = PowerShellCommandTypes.AllPowerShellNative, string nameFilter = null, Action<PSDataStreams> psDataStreamAction = null, Action<PSDataAlternateStream> alternateDataStreamAction = null)
+        public Collection<CmdInfo> GetCommandCollection(string[] cmdletArray = null, int totalCount = -1, string[] module = null, bool skipmodule = false, CmdType commandType = CmdType.AllPowerShellNative, string nameFilter = null, Action<PSDataStreams> psDataStreamAction = null, Action<PSDataAlternateStream> alternateDataStreamAction = null)
         {
             Dictionary<string, object> cmdparams = new Dictionary<string, object>();
-            //if (module == null && RunspaceMode == PowerShellRunspaceMode.LocalRunspace)
+            //if (module == null && RunspaceMode == RunspaceMode.LocalRunspace)
             //    module = new string[] { "Microsoft.PowerShell.Core" };
 
-            if (RunspaceMode == PowerShellRunspaceMode.LocalRunspace && !skipmodule)
+            if (RunspaceMode == RunspaceMode.LocalRunspace && !skipmodule)
             {
-                if (module != null) cmdparams.Add(Constants.PSParameterNameStrings.Module, module);
-                else if (ImportedModuleList != null && ImportedModuleList.Count > 0) cmdparams.Add(Constants.PSParameterNameStrings.Module, ImportedModuleList.ToArray());
+                if (module != null) cmdparams.Add(Constants.ParameterNameStrings.Module, module);
+                else if (ImportedModuleList != null && ImportedModuleList.Count > 0) cmdparams.Add(Constants.ParameterNameStrings.Module, ImportedModuleList.ToArray());
             }
 
-            if (!nameFilter.IsNullOrEmpty()) cmdparams.Add(Constants.PSParameterNameStrings.Name, nameFilter);
-            else if (cmdletArray != null) cmdparams.Add(Constants.PSParameterNameStrings.Name, cmdletArray);
-            cmdparams.Add(Constants.PSParameterNameStrings.CommandType, (int)commandType);
+            if (!nameFilter.IsNullOrEmpty()) cmdparams.Add(Constants.ParameterNameStrings.Name, nameFilter);
+            else if (cmdletArray != null) cmdparams.Add(Constants.ParameterNameStrings.Name, cmdletArray);
+            cmdparams.Add(Constants.ParameterNameStrings.CommandType, (int)commandType);
             cmdparams.Add("TotalCount", totalCount);
 
             cmdparams.Add("listimported", null);
 
-            Collection<PSCommandInfoProxy> result = new Collection<PSCommandInfoProxy>();
-            if (RunspaceMode == PowerShellRunspaceMode.LocalRunspace)
+            Collection<CmdInfo> result = new Collection<CmdInfo>();
+            if (RunspaceMode == RunspaceMode.LocalRunspace)
             {
-                Command cmd = new Command(Constants.PSCmdlets.GetCommand);
+                Command cmd = new Command(Constants.Cmdlets.GetCommand);
                 if (cmdparams != null)
                     foreach (KeyValuePair<string, object> item in cmdparams)
                     {
@@ -473,8 +473,8 @@ namespace PowerShellPowered.PowerShellConnect
                 PSCommand psc = new PSCommand();
                 psc.AddCommand(cmd);
                 psc.AddCommand("where-object").AddParameter("property", "modulename").AddParameter("ne").AddParameter("value", "");
-                //result = GetCommandInfoProxyCollection(ExecuteCommand<CommandInfo>(Constants.PSCmdlets.GetCommand, cmdparams, false, psDataStreamAction), alternateDataStreamAction);
-                result = GetCommandInfoProxyCollection(ExecuteCommand<CommandInfo>(psc, psDataStreamAction), alternateDataStreamAction);
+                //result = GetCmdInfoCollection(ExecuteCommand<CommandInfo>(Constants.Cmdlets.GetCommand, cmdparams, false, psDataStreamAction), alternateDataStreamAction);
+                result = GetCmdInfoCollection(ExecuteCommand<CommandInfo>(psc, psDataStreamAction), alternateDataStreamAction);
             }
 
             else
@@ -487,50 +487,50 @@ namespace PowerShellPowered.PowerShellConnect
             return result;
         }
 
-        public Collection<PSCommandInfoProxy> GetScriptInfo(string scriptFileName, PowerShellCommandTypes commandType = PowerShellCommandTypes.ExternalScript, Action<PSDataStreams> psDataStreamAction = null, Action<PSDataAlternateStream> alternateDataStreamAction = null)
+        public Collection<CmdInfo> GetScriptInfo(string scriptFileName, CmdType commandType = CmdType.ExternalScript, Action<PSDataStreams> psDataStreamAction = null, Action<PSDataAlternateStream> alternateDataStreamAction = null)
         {
             Dictionary<string, object> cmdparams = new Dictionary<string, object>();
 
 
-            cmdparams.Add(Constants.PSParameterNameStrings.Name, scriptFileName);
-            //cmdparams.Add(Constants.PSParameterNameStrings.CommandType, (int)commandType);
+            cmdparams.Add(Constants.ParameterNameStrings.Name, scriptFileName);
+            //cmdparams.Add(Constants.ParameterNameStrings.CommandType, (int)commandType);
 
-            Collection<PSCommandInfoProxy> result = new Collection<PSCommandInfoProxy>();
-            result = GetCommandInfoProxyCollection(ExecuteCommand<CommandInfo>(Constants.PSCmdlets.GetCommand, cmdparams, false, psDataStreamAction), alternateDataStreamAction);
+            Collection<CmdInfo> result = new Collection<CmdInfo>();
+            result = GetCmdInfoCollection(ExecuteCommand<CommandInfo>(Constants.Cmdlets.GetCommand, cmdparams, false, psDataStreamAction), alternateDataStreamAction);
 
             //if (!Ispersistant) ResetRunspace();
 
             return result;
         }
 
-        public Collection<PSObject> GetCommandCollectionRaw(string[] cmdletArray = null, int totalCount = -1, string[] module = null, PowerShellCommandTypes commandType = PowerShellCommandTypes.Cmdlet, string nameFilter = null)
+        public Collection<PSObject> GetCommandCollectionRaw(string[] cmdletArray = null, int totalCount = -1, string[] module = null, CmdType commandType = CmdType.Cmdlet, string nameFilter = null)
         {
             Dictionary<string, object> cmdparams = new Dictionary<string, object>();
-            if (module != null) cmdparams.Add(Constants.PSParameterNameStrings.Module, module);
-            else if (ImportedModuleList != null && ImportedModuleList.Count > 0) cmdparams.Add(Constants.PSParameterNameStrings.Module, ImportedModuleList.ToArray());
+            if (module != null) cmdparams.Add(Constants.ParameterNameStrings.Module, module);
+            else if (ImportedModuleList != null && ImportedModuleList.Count > 0) cmdparams.Add(Constants.ParameterNameStrings.Module, ImportedModuleList.ToArray());
 
-            if (!nameFilter.IsNullOrEmpty()) cmdparams.Add(Constants.PSParameterNameStrings.Name, nameFilter);
-            else if (cmdletArray != null) cmdparams.Add(Constants.PSParameterNameStrings.Name, cmdletArray);
-            cmdparams.Add(Constants.PSParameterNameStrings.CommandType, (int)commandType);
+            if (!nameFilter.IsNullOrEmpty()) cmdparams.Add(Constants.ParameterNameStrings.Name, nameFilter);
+            else if (cmdletArray != null) cmdparams.Add(Constants.ParameterNameStrings.Name, cmdletArray);
+            cmdparams.Add(Constants.ParameterNameStrings.CommandType, (int)commandType);
             cmdparams.Add("TotalCount", totalCount);
 
-            var result = ExecuteCommand<PSObject>(Constants.PSCmdlets.GetCommand, cmdparams);
+            var result = ExecuteCommand<PSObject>(Constants.Cmdlets.GetCommand, cmdparams);
             return result;
 
         }
 
-        public Collection<PSObject> GetCommandCollectionScriptedRaw(string[] cmdletArray = null, int totalCount = -1, string[] module = null, PowerShellCommandTypes commandType = PowerShellCommandTypes.Cmdlet, string nameFilter = null)
+        public Collection<PSObject> GetCommandCollectionScriptedRaw(string[] cmdletArray = null, int totalCount = -1, string[] module = null, CmdType commandType = CmdType.Cmdlet, string nameFilter = null)
         {
             Dictionary<string, object> cmdparams = new Dictionary<string, object>();
-            if (module != null) cmdparams.Add(Constants.PSParameterNameStrings.Module, module);
-            else if (ImportedModuleList != null && ImportedModuleList.Count > 0) cmdparams.Add(Constants.PSParameterNameStrings.Module, ImportedModuleList.ToArray());
+            if (module != null) cmdparams.Add(Constants.ParameterNameStrings.Module, module);
+            else if (ImportedModuleList != null && ImportedModuleList.Count > 0) cmdparams.Add(Constants.ParameterNameStrings.Module, ImportedModuleList.ToArray());
 
-            if (!nameFilter.IsNullOrEmpty()) cmdparams.Add(Constants.PSParameterNameStrings.Name, nameFilter);
-            else if (cmdletArray != null) cmdparams.Add(Constants.PSParameterNameStrings.Name, cmdletArray);
-            cmdparams.Add(Constants.PSParameterNameStrings.CommandType, (int)commandType);
+            if (!nameFilter.IsNullOrEmpty()) cmdparams.Add(Constants.ParameterNameStrings.Name, nameFilter);
+            else if (cmdletArray != null) cmdparams.Add(Constants.ParameterNameStrings.Name, cmdletArray);
+            cmdparams.Add(Constants.ParameterNameStrings.CommandType, (int)commandType);
             cmdparams.Add("TotalCount", totalCount);
 
-            var result = ExecuteCommand<PSObject>(Constants.PSCmdlets.GetCommand, cmdparams);
+            var result = ExecuteCommand<PSObject>(Constants.Cmdlets.GetCommand, cmdparams);
             return result;
 
         }
@@ -555,10 +555,10 @@ namespace PowerShellPowered.PowerShellConnect
         //All
         //255
 
-        private Collection<PSCommandInfoProxy> GetCommandCollectionRemote(string[] cmdletArray = null, int totalCount = -1, string[] module = null, PowerShellCommandTypes commandType = PowerShellCommandTypes.Cmdlet, string nameFilter = null, Action<PSDataStreams> psDataStreamAction = null)
+        public Collection<CmdInfo> GetCommandCollectionRemote(string[] cmdletArray = null, int totalCount = -1, string[] module = null, CmdType commandType = CmdType.Cmdlet, string nameFilter = null, Action<PSDataStreams> psDataStreamAction = null)
         {
 
-            if (RunspaceMode == PowerShellRunspaceMode.RemoteRunspace)
+            if (RunspaceMode == RunspaceMode.RemoteRunspace)
             {
                 CleanUpTimer.Start();
                 //GC.KeepAlive(CleanUpTimer);
@@ -575,10 +575,10 @@ namespace PowerShellPowered.PowerShellConnect
 
 
             Command cmd = new Command(Constants.PSHelpParsingScripts.GetCommandScript, true);
-            if (RunspaceMode != PowerShellRunspaceMode.LocalRunspace)
+            if (RunspaceMode != RunspaceMode.LocalRunspace)
                 cmd.Parameters.Add("Session", ExecutionRunspace.PSSession);
 
-            string assemblypath = Assembly.GetAssembly(typeof(PowerShellPowered.PowerShellConnect.PowerShellConnection)).Location;
+            string assemblypath = Assembly.GetAssembly(typeof(ShellConnection)).Location;
             cmd.Parameters.Add("EntitiesFile", assemblypath);
 
             if (!nameFilter.IsNullOrEmpty()) cmd.Parameters.Add("Name", nameFilter);
@@ -586,19 +586,19 @@ namespace PowerShellPowered.PowerShellConnect
 
             cmd.Parameters.Add("CommandType", (int)commandType);
             cmd.Parameters.Add("TotalCount", totalCount);
-            if (RunspaceMode == PowerShellRunspaceMode.LocalRunspace)
+            if (RunspaceMode == RunspaceMode.LocalRunspace)
                 if (module != null) cmd.Parameters.Add("Module", module);
             PSCommand pscc = new PSCommand();
             pscc.Commands.Add(cmd);
 
-            var _result = _runspace.ExecuteCommand<PSCommandInfoProxy>(pscc, psDataStreamAction);
+            var _result = _runspace.ExecuteCommand<CmdInfo>(pscc, psDataStreamAction);
 
             return _result;
         }
 
-        private Collection<PSCommandInfoProxy> GetCommandInfoProxyCollection(Collection<CommandInfo> commandInfoCollection, Action<PSDataAlternateStream> alternateDataStream = null)
+        private Collection<CmdInfo> GetCmdInfoCollection(Collection<CommandInfo> commandInfoCollection, Action<PSDataAlternateStream> alternateDataStream = null)
         {
-            Collection<PSCommandInfoProxy> _result = new Collection<PSCommandInfoProxy>();
+            Collection<CmdInfo> _result = new Collection<CmdInfo>();
             int count = 0;
             int total = commandInfoCollection.Count;
             foreach (CommandInfo commandinfo in commandInfoCollection)
@@ -609,7 +609,7 @@ namespace PowerShellPowered.PowerShellConnect
                     alternateDataStream(new PSDataAlternateStream() { HasProgress = true, SimpleProgress = new ProgressRecord(100, "adding data", "Adding Data Description") { PercentComplete = percent } });
                 try
                 {
-                    _result.Add(commandinfo.ToPSCommandInfoProxy(true));
+                    _result.Add(commandinfo.ToCmdInfo(true));
                 }
                 catch (Exception ex)
                 {
@@ -625,15 +625,15 @@ namespace PowerShellPowered.PowerShellConnect
             return _result;
         }
 
-        public static string GetRedirectedURL(string connectionUri, string configSchemaUri, string userName, SecureString securePassword, PowerShellRunspaceMode runspaceMode = PowerShellRunspaceMode.RemoteRunspace, int maxRedirectionCount = 0)
+        public static string GetRedirectedURL(string connectionUri, string configSchemaUri, string userName, SecureString securePassword, RunspaceMode runspaceMode = RunspaceMode.RemoteRunspace, int maxRedirectionCount = 0)
         {
 
             string _r = connectionUri;
             Dictionary<string, object> _params = new Dictionary<string, object>();
-            _params.Add(Constants.PSParameterNameStrings.Name, Constants.PSCmdlets.GetCommand);
+            _params.Add(Constants.ParameterNameStrings.Name, Constants.Cmdlets.GetCommand);
             try
             {
-                using (PowerShellConnection ps = new PowerShellConnection(_r, configSchemaUri, userName, securePassword, maxRedirectionCount: maxRedirectionCount))
+                using (ShellConnection ps = new ShellConnection(_r, configSchemaUri, userName, securePassword, maxRedirectionCount: maxRedirectionCount))
                 {
                     ps.Create();
                 }
@@ -656,7 +656,7 @@ namespace PowerShellPowered.PowerShellConnect
         private string GetCommandSynopsis(string command, string psModule = null)
         {
             PSCommand psc = new PSCommand();
-            psc.AddCommand(Constants.PSCmdlets.GetHelp).AddParameter(Constants.PSParameterNameStrings.Name, command);
+            psc.AddCommand(Constants.Cmdlets.GetHelp).AddParameter(Constants.ParameterNameStrings.Name, command);
             try
             {
                 PSObject pso = GetExecutionRunspace().ExecuteCommand(psc)[0];
@@ -668,9 +668,9 @@ namespace PowerShellPowered.PowerShellConnect
             return string.Empty;
         }
 
-        public PSCommandHelp GetCommandHelp(string command, Action<PSDataStreams> psDataStreamAction)
+        public CmdHelp GetCommandHelp(string command, Action<PSDataStreams> psDataStreamAction)
         {
-            if (RunspaceMode == PowerShellRunspaceMode.RemoteRunspace)
+            if (RunspaceMode == RunspaceMode.RemoteRunspace)
             {
                 CleanUpTimer.Start();
                 //GC.KeepAlive(CleanUpTimer);
@@ -693,23 +693,23 @@ namespace PowerShellPowered.PowerShellConnect
             //Command cmd = new Command(script, true);
             Command cmd = new Command(Constants.PSHelpParsingScripts.GetHelpScript, true);
             cmd.Parameters.Add("Name", command);
-            string assemblypath = Assembly.GetAssembly(typeof(PowerShellConnection)).Location;
+            string assemblypath = Assembly.GetAssembly(typeof(ShellConnection)).Location;
             cmd.Parameters.Add("EntitiesFile", assemblypath);
 
-            if (RunspaceMode != PowerShellRunspaceMode.LocalRunspace)
+            if (RunspaceMode != RunspaceMode.LocalRunspace)
                 cmd.Parameters.Add("Session", ExecutionRunspace.PSSession);
 
             pscmd.AddCommand(cmd);
-            PSCommandHelp hcmd = null;
+            CmdHelp hcmd = null;
             try
             {
-                hcmd = new PSCommandHelp();
+                hcmd = new CmdHelp();
 
-                Collection<PSCommandHelp> res = _runspace.ExecuteCommand<PSCommandHelp>(pscmd, psDataStreamAction);
+                Collection<CmdHelp> res = _runspace.ExecuteCommand<CmdHelp>(pscmd, psDataStreamAction);
                 hcmd = res[0];
                 //! using simplified methods with script text
                 //++ win8/psv3 has bug for get-help -full, run update-help to stage local help                
-                //cmd.AddCommand(Constants.PSCmdlets.GetHelp).AddParameter(Constants.PSParameterNameStrings.Name, command);//.AddParameter("Full");
+                //cmd.AddCommand(Constants.Cmdlets.GetHelp).AddParameter(Constants.ParameterNameStrings.Name, command);//.AddParameter("Full");
                 //Collection<PSObject> res = ExecutionRunspaceLocal.ExecuteCommand(cmd);
 
                 //++ skipped for test
@@ -788,9 +788,9 @@ namespace PowerShellPowered.PowerShellConnect
 
         #region Get Command Help Private Methods
 
-        private static PSCommandHelp GetCommandHelp(PSObject pso)
+        private static CmdHelp GetCommandHelp(PSObject pso)
         {
-            PSCommandHelp _result = new PSCommandHelp();
+            CmdHelp _result = new CmdHelp();
             //--------alternate test
 
             _result.Category = pso.GetPropertyValue("category");
@@ -814,30 +814,30 @@ namespace PowerShellPowered.PowerShellConnect
             pso.TryGetPropertyAsTObject<PSObject[]>("ParametersEx", out parameters);
             //PSObject p = new PSObject(px);
             //pso.TryGetPropertyAsPSObject("ParametersEx", out parameters);
-            _result.PSCommandHelpParameters = new List<PSCommandHelpParameter>();
+            _result.HelpParameters = new List<CmdHelpParameter>();
             foreach (var p in parameters)
             {
-                _result.PSCommandHelpParameters.AddRange(GetCommandParameters(p));
+                _result.HelpParameters.AddRange(GetCommandParameters(p));
             }
 
             PSObject[] examples;
             pso.TryGetPropertyAsTObject<PSObject[]>("ExamplesEx", out examples);
             //PSObject p = new PSObject(px);
             //pso.TryGetPropertyAsPSObject("ParametersEx", out parameters);
-            _result.PSCommandHelpExamples = new List<PSCommandHelpExample>();
+            _result.HelpExamples = new List<CmdHelpExample>();
             foreach (var e in examples)
             {
-                _result.PSCommandHelpExamples.AddRange(GetCommandExample(e));
+                _result.HelpExamples.AddRange(GetCommandExample(e));
             }
 
             PSObject[] syntaxes;
             pso.TryGetPropertyAsTObject<PSObject[]>("SyntaxEx", out syntaxes);
             //PSObject p = new PSObject(px);
             //pso.TryGetPropertyAsPSObject("ParametersEx", out parameters);
-            _result.PSCommandHelpSyntaxes = new List<PSCommandHelpSyntax>();
+            _result.HelpSyntaxes = new List<CmdHelpSyntax>();
             foreach (var s in syntaxes)
             {
-                _result.PSCommandHelpSyntaxes.AddRange(GetCommandSyntax(s));
+                _result.HelpSyntaxes.AddRange(GetCommandSyntax(s));
             }
 
 
@@ -900,21 +900,21 @@ namespace PowerShellPowered.PowerShellConnect
             return _result;
 
         }
-        private static List<PSCommandHelpParameter> GetCommandParameters(PSObject pso)
+        private static List<CmdHelpParameter> GetCommandParameters(PSObject pso)
         {
-            List<PSCommandHelpParameter> _result = new List<PSCommandHelpParameter>();
+            List<CmdHelpParameter> _result = new List<CmdHelpParameter>();
 
             if (pso.IsArrayList())
             {
                 foreach (PSObject parameter in pso.ToArrayList())
                 {
-                    List<PSCommandHelpParameter> _r_nested = GetCommandParameters(parameter);
+                    List<CmdHelpParameter> _r_nested = GetCommandParameters(parameter);
                     if (_r_nested != null) _result.AddRange(_r_nested);
                 }
             }
             else
             {
-                PSCommandHelpParameter p = new PSCommandHelpParameter();
+                CmdHelpParameter p = new CmdHelpParameter();
                 StringBuilder sb = new StringBuilder();
                 //p.Id = Guid.NewGuid();
                 //p.CommandHelpId = commandId;
@@ -998,15 +998,15 @@ namespace PowerShellPowered.PowerShellConnect
             return descriptionLine;
         }
 
-        private static List<PSCommandHelpExample> GetCommandExample(PSObject pso)
+        private static List<CmdHelpExample> GetCommandExample(PSObject pso)
         {
-            List<PSCommandHelpExample> _result = new List<PSCommandHelpExample>();
+            List<CmdHelpExample> _result = new List<CmdHelpExample>();
 
             if (pso.IsArrayList())
             {
                 foreach (PSObject example in pso.ToArrayList())
                 {
-                    List<PSCommandHelpExample> _r_nested = GetCommandExample(example);
+                    List<CmdHelpExample> _r_nested = GetCommandExample(example);
                     if (_r_nested != null) _result.AddRange(_r_nested);
                 }
             }
@@ -1014,7 +1014,7 @@ namespace PowerShellPowered.PowerShellConnect
             {
 
 
-                PSCommandHelpExample example = new PSCommandHelpExample();
+                CmdHelpExample example = new CmdHelpExample();
                 StringBuilder sb = new StringBuilder();
                 //example.Id = Guid.NewGuid();
                 //example.CommandHelpId = commandId;
@@ -1065,20 +1065,20 @@ namespace PowerShellPowered.PowerShellConnect
 
             return _result;
         }
-        private static List<PSCommandHelpSyntax> GetCommandSyntax(PSObject pso)
+        private static List<CmdHelpSyntax> GetCommandSyntax(PSObject pso)
         {
-            List<PSCommandHelpSyntax> _result = new List<PSCommandHelpSyntax>();
+            List<CmdHelpSyntax> _result = new List<CmdHelpSyntax>();
             if (pso.IsArrayList())
             {
                 foreach (PSObject syntax in pso.ToArrayList())
                 {
-                    List<PSCommandHelpSyntax> _r_nested = GetCommandSyntax(syntax);
+                    List<CmdHelpSyntax> _r_nested = GetCommandSyntax(syntax);
                     if (_r_nested != null) _result.AddRange(_r_nested);
                 }
             }
             else
             {
-                PSCommandHelpSyntax syntax = new PSCommandHelpSyntax();
+                CmdHelpSyntax syntax = new CmdHelpSyntax();
                 //syntax.Id = Guid.NewGuid();
                 //syntax.CommandHelpId = commandId;
                 syntax.Name = pso.GetPropertyValue("Name");
@@ -1088,36 +1088,36 @@ namespace PowerShellPowered.PowerShellConnect
                 pso.TryGetPropertyAsTObject<PSObject[]>("parameters", out syntaxparams);
                 //PSObject p = new PSObject(px);
                 //pso.TryGetPropertyAsPSObject("ParametersEx", out parameters);
-                syntax.PSCommandHelpSyntaxParameters = new List<PSCommandHelpSyntaxParameter>();
+                syntax.SyntaxParameters = new List<CmdHelpSyntaxParameter>();
                 foreach (var s in syntaxparams)
                 {
-                    syntax.PSCommandHelpSyntaxParameters.AddRange(GetCommandSyntaxParameters(s));
+                    syntax.SyntaxParameters.AddRange(GetCommandSyntaxParameters(s));
                 }
 
                 //PSObject psParameter;
                 //if (pso.TryGetPropertyAsPSObject("parameter", out psParameter))
                 //{
-                //    syntax.PSCommandHelpSyntaxParameters = GetCommandSyntaxParameters(psParameter);
+                //    syntax.SyntaxParameters = GetCommandSyntaxParameters(psParameter);
                 //}
                 _result.Add(syntax);
             }
             return _result;
         }
 
-        private static List<PSCommandHelpSyntaxParameter> GetCommandSyntaxParameters(PSObject pso)
+        private static List<CmdHelpSyntaxParameter> GetCommandSyntaxParameters(PSObject pso)
         {
-            List<PSCommandHelpSyntaxParameter> _result = new List<PSCommandHelpSyntaxParameter>();
+            List<CmdHelpSyntaxParameter> _result = new List<CmdHelpSyntaxParameter>();
             if (pso.IsArrayList())
             {
                 foreach (PSObject parameter in pso.ToArrayList())
                 {
-                    List<PSCommandHelpSyntaxParameter> _r_nested = GetCommandSyntaxParameters(parameter);
+                    List<CmdHelpSyntaxParameter> _r_nested = GetCommandSyntaxParameters(parameter);
                     if (_r_nested != null) _result.AddRange(_r_nested);
                 }
             }
             else
             {
-                PSCommandHelpSyntaxParameter p = new PSCommandHelpSyntaxParameter();
+                CmdHelpSyntaxParameter p = new CmdHelpSyntaxParameter();
                 //p.Id = Guid.NewGuid();
                 //p.SyntaxId = syntaxId;
                 p.Name = pso.GetPropertyValue("Name");
@@ -1339,7 +1339,7 @@ namespace PowerShellPowered.PowerShellConnect
             bool skipSettingDefaultRunspace = false;
             switch (RunspaceMode)
             {
-                case PowerShellRunspaceMode.RemoteRunspace:
+                case RunspaceMode.RemoteRunspace:
                     if (_remoteSessionLocalRunspaceForDefultRunspace == null || _remoteSessionLocalRunspaceForDefultRunspace.RunspaceStateInfo.State != RunspaceState.Opened)
                     {
                         _remoteSessionLocalRunspaceForDefultRunspace = CreateLocalDefaultRunspace(ImportedModuleList);
@@ -1352,14 +1352,14 @@ namespace PowerShellPowered.PowerShellConnect
 
                     runspace = this.Runspace;
                     break;
-                case PowerShellRunspaceMode.RemoteSessionImported:
-                case PowerShellRunspaceMode.LocalRunspace:
+                case RunspaceMode.RemoteSessionImported:
+                case RunspaceMode.LocalRunspace:
                     if (Runspace.RunspaceStateInfo.State != RunspaceState.Opened)
                         Create();
 
                     runspace = this.Runspace;
                     break;
-                case PowerShellRunspaceMode.RemoteSession:
+                case RunspaceMode.RemoteSession:
                     if (ExecutionRunspace.PSSession.Runspace.RunspaceStateInfo.State != RunspaceState.Opened)
                         Create();
                     if (_remoteSessionLocalRunspaceForDefultRunspace == null || _remoteSessionLocalRunspaceForDefultRunspace.RunspaceStateInfo.State != RunspaceState.Opened)
@@ -1387,7 +1387,7 @@ namespace PowerShellPowered.PowerShellConnect
             InitialSessionState iss = InitialSessionState.CreateDefault();
             switch (RunspaceMode)
             {
-                case PowerShellRunspaceMode.RemoteRunspace:
+                case RunspaceMode.RemoteRunspace:
                     PSCredential credential = new PSCredential(UserName, Password);
                     WSManConnectionInfo connectionInfo = GetWsManConnection();
                     connectionInfo.MaximumConnectionRedirectionCount = MaxRedirectionCount;
@@ -1399,7 +1399,7 @@ namespace PowerShellPowered.PowerShellConnect
                     AttachRunspaceChanged(this.Runspace);
                     break;
 
-                case PowerShellRunspaceMode.RemoteSession:
+                case RunspaceMode.RemoteSession:
                     ExecutionRunspace = new ExecutionRunspace(UserName, Password, ConnectionUri, SchemaUri, MaxRedirectionCount > 0, false, ImportedModuleList, psDataStreamAction);
                     this.Runspace = ExecutionRunspace.Runspace;
                     RunspaceCreated = true;
@@ -1408,7 +1408,7 @@ namespace PowerShellPowered.PowerShellConnect
                         AttachRunspaceChanged(ExecutionRunspace.PSSession.Runspace);
                     break;
 
-                case PowerShellRunspaceMode.RemoteSessionImported:
+                case RunspaceMode.RemoteSessionImported:
                     ExecutionRunspace = new ExecutionRunspace(UserName, Password, ConnectionUri, SchemaUri, MaxRedirectionCount > 0, true, ImportedModuleList, psDataStreamAction);
                     this.Runspace = ExecutionRunspace.Runspace;
                     RunspaceCreated = true;
@@ -1417,7 +1417,7 @@ namespace PowerShellPowered.PowerShellConnect
                         AttachRunspaceChanged(ExecutionRunspace.PSSession.Runspace);
                     break;
 
-                case PowerShellRunspaceMode.LocalRunspace:
+                case RunspaceMode.LocalRunspace:
                     //if (ImportedModuleList == null || ImportedModuleList.Count == 0) ImportedModuleList = new List<string>() { "Microsoft.PowerShell.*" };
                     ExecutionRunspace = new ExecutionRunspace(ImportedModuleList, psDataStreamAction: psDataStreamAction);
                     this.Runspace = ExecutionRunspace.Runspace;
@@ -1435,12 +1435,12 @@ namespace PowerShellPowered.PowerShellConnect
         }
 
 
-        private static Collection<PSCommandInfoProxy> ConvertScriptedCommandInfoToProxy(Collection<PSObject> psObjectCollection, bool includeCommonParameters = false)
+        private static Collection<CmdInfo> ConvertScriptedCommandInfoToCmdInfo(Collection<PSObject> psObjectCollection, bool includeCommonParameters = false)
         {
-            Collection<PSCommandInfoProxy> _result = new Collection<PSCommandInfoProxy>();
+            Collection<CmdInfo> _result = new Collection<CmdInfo>();
             foreach (var psobj in psObjectCollection)
             {
-                PSCommandInfoProxy _colItem = new PSCommandInfoProxy();
+                CmdInfo _colItem = new CmdInfo();
                 dynamic commandInfoDynamic = psobj;
                 CommandTypes commandType = Enum.Parse(typeof(CommandTypes), commandInfoDynamic.CommandType);
                 _colItem.IsRemoteCommand = false;
@@ -1625,9 +1625,4 @@ namespace PowerShellPowered.PowerShellConnect
         }
 
     }
-
-
-
-
-
 }

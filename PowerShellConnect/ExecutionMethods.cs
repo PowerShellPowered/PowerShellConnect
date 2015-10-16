@@ -64,7 +64,7 @@ namespace PowerShellPowered.PowerShellConnect
             }
 
             var cred = new PSCredential(userName, password);
-            SetVariable(runspace, Constants.PSVariableNameStrings.Credential, cred);
+            SetVariable(runspace, Constants.VariableNameStrings.Credential, cred);
         }
 
         /// <summary>
@@ -91,9 +91,9 @@ namespace PowerShellPowered.PowerShellConnect
             }
 
             var command = new PSCommand();
-            command.AddCommand(Constants.PSCmdlets.SetVariable);
-            command.AddParameter(Constants.PSParameterNameStrings.Name, name);
-            command.AddParameter(Constants.PSParameterNameStrings.Value, value);
+            command.AddCommand(Constants.Cmdlets.SetVariable);
+            command.AddParameter(Constants.ParameterNameStrings.Name, name);
+            command.AddParameter(Constants.ParameterNameStrings.Value, value);
             ExecuteCommand<PSObject>(command, runspace);
         }
 

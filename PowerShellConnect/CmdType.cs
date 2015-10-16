@@ -1,7 +1,7 @@
 ﻿
 namespace PowerShellPowered.PowerShellConnect
 {
-    public enum PowerShellCommandTypes
+    public enum CmdType
     {
         Alias = 1,
         Function = 2,

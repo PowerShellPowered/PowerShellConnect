@@ -1,7 +1,7 @@
 
 namespace PowerShellPowered.PowerShellConnect
 {
-    public enum PowerShellRunspaceMode
+    public enum RunspaceMode
     {
         RemoteRunspace,
         RemoteSession,

@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 
 namespace PowerShellPowered.PowerShellConnect.Entities
 {
-    public class PSCommandInfoProxy
+    public class CmdInfo
     {
         public bool IsRemoteCommand { get; set; }
         public bool CmdletBinding { get; set; }
@@ -22,11 +22,11 @@ namespace PowerShellPowered.PowerShellConnect.Entities
         public string Noun { get; set; }
         public string Options { get; set; }
         public string OriginalEncoding { get; set; }
-        public string[] OutputType { get; set; }
-        public string[] Parameters { get; set; }
-        public Collection<PSParameterInfoProxy> ParameterCollection { get; set; }
-        public string[] ParameterSets { get; set; }
-        public List<PSParameterSetInfoProxy> ParameterSetCollection { get; set; }
+        public List<string> OutputType { get; set; } = new List<string>();
+        public List<string> Parameters { get; set; } = new List<string>();
+        public List<string> ParameterSets { get; set; } = new List<string>();
+        public List<CmdParameterInfo> CmdParameters { get; set; } = new List<CmdParameterInfo>();
+        public List<CmdParameterSetInfo> CmdParameterSets { get; set; } = new List<CmdParameterSetInfo>();
         public string Path { get; set; }
         public string PSSnapIn { get; set; }
         public string ReferencedCommand { get; set; }
@@ -39,7 +39,7 @@ namespace PowerShellPowered.PowerShellConnect.Entities
 
     }
 
-    public class PSParameterInfoProxy
+    public class CmdParameterInfo
     {
         public string Name { get; set; }
         public string NameLower { get; set; }
@@ -48,7 +48,7 @@ namespace PowerShellPowered.PowerShellConnect.Entities
         public bool IsDynamic { get; set; }
         public int Position { get; set; }
         public bool ValueFromPipeline { get; set; }
-        public string[] ValidateSetValues { get; set; }
+        public List<string> ValidateSetValues { get; set; } = new List<string>();
         //public bool ValueFromPipelineByPropertyName { get; set; }
         //public bool ValueFromRemainingArguments { get; set; }
         //public string HelpMessage { get; set; }
@@ -56,17 +56,13 @@ namespace PowerShellPowered.PowerShellConnect.Entities
         public bool SwitchParameter { get; set; }
     }
 
-    public class PSParameterSetInfoProxy
-    {
-        public PSParameterSetInfoProxy()
-        {
-            Parameters = new Collection<PSParameterInfoProxy>();
-        }
+    public class CmdParameterSetInfo
+    {        
         public string Name { get; set; }
         public string NameLower { get; set; }
         public bool IsDefault { get; set; }
         public string ToStringValue { get; set; }
-        public Collection<PSParameterInfoProxy> Parameters { get; set; }
+        public List<CmdParameterInfo> Parameters { get; set; } = new List<CmdParameterInfo>();
 
         public override string ToString()
         {
@@ -74,7 +70,7 @@ namespace PowerShellPowered.PowerShellConnect.Entities
         }
     }
 
-    public class PSModuleInfoProxy
+    public class ModuleInfo
     {
         public Guid Guid { get; set; }
         public string Name { get; set; }

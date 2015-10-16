@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace PowerShellPowered.PowerShellConnect.Entities
 {
 
-    public class PSCommandHelp
+    public class CmdHelp
     {
         public string Name { get; set; }
         public string Description { get; set; }
@@ -25,9 +25,9 @@ namespace PowerShellPowered.PowerShellConnect.Entities
         public string TerminatingErrors { get; set; }
         public string Details { get; set; }
 
-        public List<PSCommandHelpExample> PSCommandHelpExamples { get; set; } = new List<PSCommandHelpExample>();
-        public List<PSCommandHelpParameter> PSCommandHelpParameters { get; set; } = new List<PSCommandHelpParameter>();
-        public List<PSCommandHelpSyntax> PSCommandHelpSyntaxes { get; set; } = new List<PSCommandHelpSyntax>();
+        public List<CmdHelpExample> HelpExamples { get; set; } = new List<CmdHelpExample>();
+        public List<CmdHelpParameter> HelpParameters { get; set; } = new List<CmdHelpParameter>();
+        public List<CmdHelpSyntax> HelpSyntaxes { get; set; } = new List<CmdHelpSyntax>();
 
         public override string ToString()
         {
@@ -36,7 +36,7 @@ namespace PowerShellPowered.PowerShellConnect.Entities
     }
 
 
-    public class PSCommandHelpExample
+    public class CmdHelpExample
     {
 
         public string Title { get; set; }
@@ -44,7 +44,7 @@ namespace PowerShellPowered.PowerShellConnect.Entities
         public string Code { get; set; }
         public string Remarks { get; set; }
         public string CommandLines { get; set; }
-        public string ExampleFullText { get; set; }
+        public string FullText { get; set; }
 
         public override string ToString()
         {
@@ -53,7 +53,7 @@ namespace PowerShellPowered.PowerShellConnect.Entities
     }
 
 
-    public class PSCommandHelpParameter
+    public class CmdHelpParameter
     {
         public string Name { get; set; }
         public string Description { get; set; }
@@ -73,11 +73,11 @@ namespace PowerShellPowered.PowerShellConnect.Entities
     }
 
 
-    public class PSCommandHelpSyntax
+    public class CmdHelpSyntax
     {
         public string Name { get; set; }
         public string Syntax { get; set; }
-        public List<PSCommandHelpSyntaxParameter> PSCommandHelpSyntaxParameters { get; set; } = new List<PSCommandHelpSyntaxParameter>();
+        public List<CmdHelpSyntaxParameter> SyntaxParameters { get; set; } = new List<CmdHelpSyntaxParameter>();
 
         public override string ToString()
         {
@@ -86,7 +86,7 @@ namespace PowerShellPowered.PowerShellConnect.Entities
     }
 
 
-    public class PSCommandHelpSyntaxParameter
+    public class CmdHelpSyntaxParameter
     {
         public string Name { get; set; }
         public string ParameterValue { get; set; }

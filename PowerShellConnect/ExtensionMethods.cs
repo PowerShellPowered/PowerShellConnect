@@ -30,7 +30,7 @@ namespace PowerShellPowered.PowerShellConnect
             }
 
             var cred = new PSCredential(userName, password);
-            SetRunspaceVariable(runspace, Constants.PSVariableNameStrings.Credential, cred);
+            SetRunspaceVariable(runspace, Constants.VariableNameStrings.Credential, cred);
         }
 
         public static void SetRunspaceVariable(this Runspace runspace, string name, object value)
@@ -51,9 +51,9 @@ namespace PowerShellPowered.PowerShellConnect
             }
 
             var command = new PSCommand();
-            command.AddCommand(Constants.PSCmdlets.SetVariable);
-            command.AddParameter(Constants.PSParameterNameStrings.Name, name);
-            command.AddParameter(Constants.PSParameterNameStrings.Value, value);
+            command.AddCommand(Constants.Cmdlets.SetVariable);
+            command.AddParameter(Constants.ParameterNameStrings.Name, name);
+            command.AddParameter(Constants.ParameterNameStrings.Value, value);
             runspace.ExecuteCommand<PSObject>(command);
         }
 
@@ -202,9 +202,9 @@ namespace PowerShellPowered.PowerShellConnect
         }
 
 
-        public static PSCommandInfoProxy ToPSCommandInfoProxy(this CommandInfo commandInfo, bool includeCommonParameters = false)
+        public static CmdInfo ToCmdInfo(this CommandInfo commandInfo, bool includeCommonParameters = false)
         {
-            PSCommandInfoProxy _res = new PSCommandInfoProxy();
+            CmdInfo _res = new CmdInfo();
 
             CommandTypes commandType = commandInfo.CommandType;
 
@@ -216,14 +216,14 @@ namespace PowerShellPowered.PowerShellConnect
             _res.Module = commandInfo.Module == null ? string.Empty : commandInfo.Module.Name;
             _res.ModuleName = commandInfo.ModuleName;
             if (commandInfo.OutputType != null)
-                _res.OutputType = (from a in commandInfo.OutputType select a.Name).ToArray();
+                _res.OutputType = (from a in commandInfo.OutputType select a.Name).ToList();
             if (commandInfo.ParameterSets != null)
             {
-                _res.ParameterSets = (from a in commandInfo.ParameterSets select a.ToString().Trim()).ToArray();
-                _res.ParameterSetCollection = new List<PSParameterSetInfoProxy>();
+                _res.ParameterSets = (from a in commandInfo.ParameterSets select a.ToString().Trim()).ToList();
+                _res.CmdParameterSets = new List<CmdParameterSetInfo>();
                 commandInfo.ParameterSets.ToList().AsParallel().ForAll(x =>
                     {
-                        PSParameterSetInfoProxy psip = new PSParameterSetInfoProxy();
+                        CmdParameterSetInfo psip = new CmdParameterSetInfo();
                         psip.IsDefault = x.IsDefault;
                         psip.Name = x.Name;
                         psip.NameLower = x.Name.ToLower();
@@ -232,7 +232,7 @@ namespace PowerShellPowered.PowerShellConnect
                             {
                                 if (!Constants.CommomParamaters.Contains(y.Name) || includeCommonParameters)
                                 {
-                                    PSParameterInfoProxy p = new PSParameterInfoProxy();
+                                    CmdParameterInfo p = new CmdParameterInfo();
                                     p.Name = y.Name;
                                     p.ParameterType = y.ParameterType.ToString();
                                     p.IsMandatory = y.IsMandatory;
@@ -242,24 +242,24 @@ namespace PowerShellPowered.PowerShellConnect
                                     p.SwitchParameter = y.ParameterType.ToString().Contains("SwitchParameter");
 
                                     if (y.ParameterType.IsEnum)
-                                        p.ValidateSetValues = Enum.GetNames(y.ParameterType);
+                                        p.ValidateSetValues = Enum.GetNames(y.ParameterType).ToList();
 
                                     lock (psip.Parameters) { psip.Parameters.Add(p); }
                                 }
                             });
 
-                        lock (_res.ParameterSetCollection) { _res.ParameterSetCollection.Add(psip); }
+                        lock (_res.CmdParameterSets) { _res.CmdParameterSets.Add(psip); }
                     });
             }
 
             if (commandInfo.Parameters != null)
             {
                 if (includeCommonParameters)
-                    _res.Parameters = (from a in commandInfo.Parameters select a.Key).ToArray();
+                    _res.Parameters = (from a in commandInfo.Parameters select a.Key).ToList();
                 else
-                    _res.Parameters = (from a in commandInfo.Parameters where !Constants.CommomParamaters.Contains(a.Key) select a.Key).ToArray();
+                    _res.Parameters = (from a in commandInfo.Parameters where !Constants.CommomParamaters.Contains(a.Key) select a.Key).ToList();
 
-                _res.ParameterCollection = new Collection<PSParameterInfoProxy>();
+                _res.CmdParameters = new List<CmdParameterInfo>();
 
                 //Parallel.ForEach(commandInfo.Parameters.ToList(), (x) => { },,);
 
@@ -268,7 +268,7 @@ namespace PowerShellPowered.PowerShellConnect
                 {
                     if (!Constants.CommomParamaters.Contains(x.Key) || includeCommonParameters)
                     {
-                        PSParameterInfoProxy pip = new PSParameterInfoProxy();
+                        CmdParameterInfo pip = new CmdParameterInfo();
                         pip.Name = x.Key;
                         pip.ParameterType = x.Value.ParameterType.Name;
                         pip.IsDynamic = x.Value.IsDynamic;
@@ -282,9 +282,9 @@ namespace PowerShellPowered.PowerShellConnect
                         }
 
                         if (x.Value.ParameterType.IsEnum)
-                            pip.ValidateSetValues = Enum.GetNames(x.Value.ParameterType);
+                            pip.ValidateSetValues = Enum.GetNames(x.Value.ParameterType).ToList();
 
-                        lock (_res.ParameterCollection) { _res.ParameterCollection.Add(pip); }
+                        lock (_res.CmdParameters) { _res.CmdParameters.Add(pip); }
 
                     }
                 });
@@ -354,9 +354,9 @@ namespace PowerShellPowered.PowerShellConnect
         }
 
 
-        public static PSModuleInfoProxy ToPSModuleInfoProxy(this PSModuleInfo moduleInfo)
+        public static ModuleInfo ToModuleInfo(this PSModuleInfo moduleInfo)
         {
-            PSModuleInfoProxy _res = new PSModuleInfoProxy()
+            ModuleInfo _res = new ModuleInfo()
             {
                 Guid = moduleInfo.Guid,
                 Name = moduleInfo.Name,

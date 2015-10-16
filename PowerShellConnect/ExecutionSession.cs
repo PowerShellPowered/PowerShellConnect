@@ -41,11 +41,11 @@ namespace PowerShellPowered.PowerShellConnect
             }
             this.runspace.SetCredentialVariable(userName, password);
             var command = new PSCommand();
-            string importpssessionscript = Constants.PSSessionScripts.NewPSSessionScriptWithBasicAuth;
-            if (AllowRedirection) importpssessionscript += Constants.PSSessionScripts.AllowRedirectionInNewPSSession;
+            string importpssessionscript = Constants.SessionScripts.NewPSSessionScriptWithBasicAuth;
+            if (AllowRedirection) importpssessionscript += Constants.SessionScripts.AllowRedirectionInNewPSSession;
             command.AddScript(string.Format(importpssessionscript, schemauri, connectionUri));
             Collection<PSSession> sessions = this.runspace.ExecuteCommand<PSSession>(command, psDataStreamAction);
-            if (sessions.Count > 0) this.runspace.SetRunspaceVariable(Constants.PSParameterNameStrings.Session, sessions[0]);
+            if (sessions.Count > 0) this.runspace.SetRunspaceVariable(Constants.ParameterNameStrings.Session, sessions[0]);
             return sessions.Count == 0 ? null : sessions[0];
         }
 
@@ -57,8 +57,8 @@ namespace PowerShellPowered.PowerShellConnect
             }
 
             var command = new PSCommand();
-            command.AddCommand(Constants.PSSessionScripts.ImportPSSession);
-            command.AddParameter(Constants.PSParameterNameStrings.Session, session);
+            command.AddCommand(Constants.SessionScripts.ImportPSSession);
+            command.AddParameter(Constants.ParameterNameStrings.Session, session);
             Collection<PSModuleInfo> modules;
             try
             {
@@ -81,8 +81,8 @@ namespace PowerShellPowered.PowerShellConnect
             }
 
             var command = new PSCommand();
-            command.AddCommand(Constants.PSSessionScripts.RemovePSSession);
-            command.AddParameter(Constants.PSParameterNameStrings.Session, session);
+            command.AddCommand(Constants.SessionScripts.RemovePSSession);
+            command.AddParameter(Constants.ParameterNameStrings.Session, session);
             this.runspace.ExecuteCommand(command, psDataStreamAction);
         }
 
