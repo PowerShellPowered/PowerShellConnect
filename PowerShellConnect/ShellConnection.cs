@@ -1,5 +1,5 @@
-﻿using ExtensionMethods;
-using PowerShellPowered.PowerShellConnect.Entities;
+﻿using PowerShellPowered.Entities;
+using PowerShellPowered.ExtensionMethods;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -25,8 +25,8 @@ namespace PowerShellPowered.PowerShellConnect
         private string UserName;
         private SecureString Password;
         private int MaxRedirectionCount;
-        //public RunspaceMode RunspaceMode { get; private set; }
-        public RunspaceMode RunspaceMode { get; set; }
+        //public ShellRunspaceMode ShellRunspaceMode { get; private set; }
+        public ShellRunspaceMode RunspaceMode { get; set; }
         public AuthenticationMechanism AauthenticationMechanism { get; private set; }
         internal ExecutionRunspace ExecutionRunspace;
         public bool RunspaceCreated { get; private set; }
@@ -42,7 +42,7 @@ namespace PowerShellPowered.PowerShellConnect
         public Dictionary<string, object> DefinedInitialVariables { get; set; }
 
 
-        public ShellConnection(string connectionUri, string configSchemaUri, string userName, SecureString securePassword, RunspaceMode runspaceMode = RunspaceMode.RemoteRunspace, int maxRedirectionCount = 0, AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.Basic)
+        public ShellConnection(string connectionUri, string configSchemaUri, string userName, SecureString securePassword, ShellRunspaceMode runspaceMode = ShellRunspaceMode.Remote, int maxRedirectionCount = 0, AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.Basic)
             : this()
         {
             ConnectionUri = connectionUri;
@@ -53,7 +53,7 @@ namespace PowerShellPowered.PowerShellConnect
             this.AauthenticationMechanism = authenticationMechanism;
             MaxRedirectionCount = maxRedirectionCount;
         }
-        public ShellConnection(string userName = "", SecureString securePassword = null, RunspaceMode runspacemode = RunspaceMode.LocalRunspace, AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.NegotiateWithImplicitCredential)
+        public ShellConnection(string userName = "", SecureString securePassword = null, ShellRunspaceMode runspacemode = ShellRunspaceMode.Local, AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.NegotiateWithImplicitCredential)
         {
             this.RunspaceMode = runspacemode;
             this.AauthenticationMechanism = authenticationMechanism;
@@ -62,7 +62,7 @@ namespace PowerShellPowered.PowerShellConnect
             ImportedModuleList = new List<string>();
             DefinedInitialVariables = new Dictionary<string, object>();
         }
-        public ShellConnection(string connectionUri, string configSchemaUri, string certificateThumbprint, RunspaceMode runspaceMode = RunspaceMode.RemoteRunspace, int maxRedirectionCount = 0, AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.Credssp)
+        public ShellConnection(string connectionUri, string configSchemaUri, string certificateThumbprint, ShellRunspaceMode runspaceMode = ShellRunspaceMode.Remote, int maxRedirectionCount = 0, AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.Credssp)
             : this()
         {
             ConnectionUri = connectionUri;
@@ -101,7 +101,7 @@ namespace PowerShellPowered.PowerShellConnect
 
         internal void ClenupUnusedSecondaryConnection()
         {
-            if (RunspaceMode == RunspaceMode.RemoteRunspace && ExecutionRunspace.PSSession != null)
+            if (RunspaceMode == ShellRunspaceMode.Remote && ExecutionRunspace.PSSession != null)
                 ExecutionRunspace.Dispose();
 
         }
@@ -441,13 +441,13 @@ namespace PowerShellPowered.PowerShellConnect
             return _result;
         }
 
-        public Collection<CmdInfo> GetCommandCollection(string[] cmdletArray = null, int totalCount = -1, string[] module = null, bool skipmodule = false, CmdType commandType = CmdType.AllPowerShellNative, string nameFilter = null, Action<PSDataStreams> psDataStreamAction = null, Action<PSDataAlternateStream> alternateDataStreamAction = null)
+        public Collection<CmdInfo> GetCommandCollection(string[] cmdletArray = null, int totalCount = -1, string[] module = null, bool skipmodule = false, CmdType commandType = CmdType.AllPowerShellNative, string nameFilter = null, Action<PSDataStreams> psDataStreamAction = null, Action<ShellDataStreams> shellDatastreams = null)
         {
             Dictionary<string, object> cmdparams = new Dictionary<string, object>();
-            //if (module == null && RunspaceMode == RunspaceMode.LocalRunspace)
+            //if (module == null && ShellRunspaceMode == ShellRunspaceMode.Local)
             //    module = new string[] { "Microsoft.PowerShell.Core" };
 
-            if (RunspaceMode == RunspaceMode.LocalRunspace && !skipmodule)
+            if (RunspaceMode == ShellRunspaceMode.Local && !skipmodule)
             {
                 if (module != null) cmdparams.Add(Constants.ParameterNameStrings.Module, module);
                 else if (ImportedModuleList != null && ImportedModuleList.Count > 0) cmdparams.Add(Constants.ParameterNameStrings.Module, ImportedModuleList.ToArray());
@@ -461,7 +461,7 @@ namespace PowerShellPowered.PowerShellConnect
             cmdparams.Add("listimported", null);
 
             Collection<CmdInfo> result = new Collection<CmdInfo>();
-            if (RunspaceMode == RunspaceMode.LocalRunspace)
+            if (RunspaceMode == ShellRunspaceMode.Local)
             {
                 Command cmd = new Command(Constants.Cmdlets.GetCommand);
                 if (cmdparams != null)
@@ -474,7 +474,7 @@ namespace PowerShellPowered.PowerShellConnect
                 psc.AddCommand(cmd);
                 psc.AddCommand("where-object").AddParameter("property", "modulename").AddParameter("ne").AddParameter("value", "");
                 //result = GetCmdInfoCollection(ExecuteCommand<CommandInfo>(Constants.Cmdlets.GetCommand, cmdparams, false, psDataStreamAction), alternateDataStreamAction);
-                result = GetCmdInfoCollection(ExecuteCommand<CommandInfo>(psc, psDataStreamAction), alternateDataStreamAction);
+                result = GetCmdInfoCollection(ExecuteCommand<CommandInfo>(psc, psDataStreamAction), shellDatastreams);
             }
 
             else
@@ -487,7 +487,7 @@ namespace PowerShellPowered.PowerShellConnect
             return result;
         }
 
-        public Collection<CmdInfo> GetScriptInfo(string scriptFileName, CmdType commandType = CmdType.ExternalScript, Action<PSDataStreams> psDataStreamAction = null, Action<PSDataAlternateStream> alternateDataStreamAction = null)
+        public Collection<CmdInfo> GetScriptInfo(string scriptFileName, CmdType commandType = CmdType.ExternalScript, Action<PSDataStreams> psDataStreamAction = null)
         {
             Dictionary<string, object> cmdparams = new Dictionary<string, object>();
 
@@ -496,7 +496,7 @@ namespace PowerShellPowered.PowerShellConnect
             //cmdparams.Add(Constants.ParameterNameStrings.CommandType, (int)commandType);
 
             Collection<CmdInfo> result = new Collection<CmdInfo>();
-            result = GetCmdInfoCollection(ExecuteCommand<CommandInfo>(Constants.Cmdlets.GetCommand, cmdparams, false, psDataStreamAction), alternateDataStreamAction);
+            result = GetCmdInfoCollection(ExecuteCommand<CommandInfo>(Constants.Cmdlets.GetCommand, cmdparams, false, psDataStreamAction));
 
             //if (!Ispersistant) ResetRunspace();
 
@@ -558,7 +558,7 @@ namespace PowerShellPowered.PowerShellConnect
         public Collection<CmdInfo> GetCommandCollectionRemote(string[] cmdletArray = null, int totalCount = -1, string[] module = null, CmdType commandType = CmdType.Cmdlet, string nameFilter = null, Action<PSDataStreams> psDataStreamAction = null)
         {
 
-            if (RunspaceMode == RunspaceMode.RemoteRunspace)
+            if (RunspaceMode == ShellRunspaceMode.Remote)
             {
                 CleanUpTimer.Start();
                 //GC.KeepAlive(CleanUpTimer);
@@ -575,7 +575,7 @@ namespace PowerShellPowered.PowerShellConnect
 
 
             Command cmd = new Command(Constants.PSHelpParsingScripts.GetCommandScript, true);
-            if (RunspaceMode != RunspaceMode.LocalRunspace)
+            if (RunspaceMode != ShellRunspaceMode.Local)
                 cmd.Parameters.Add("Session", ExecutionRunspace.PSSession);
 
             string assemblypath = Assembly.GetAssembly(typeof(ShellConnection)).Location;
@@ -586,7 +586,7 @@ namespace PowerShellPowered.PowerShellConnect
 
             cmd.Parameters.Add("CommandType", (int)commandType);
             cmd.Parameters.Add("TotalCount", totalCount);
-            if (RunspaceMode == RunspaceMode.LocalRunspace)
+            if (RunspaceMode == ShellRunspaceMode.Local)
                 if (module != null) cmd.Parameters.Add("Module", module);
             PSCommand pscc = new PSCommand();
             pscc.Commands.Add(cmd);
@@ -596,7 +596,7 @@ namespace PowerShellPowered.PowerShellConnect
             return _result;
         }
 
-        private Collection<CmdInfo> GetCmdInfoCollection(Collection<CommandInfo> commandInfoCollection, Action<PSDataAlternateStream> alternateDataStream = null)
+        private Collection<CmdInfo> GetCmdInfoCollection(Collection<CommandInfo> commandInfoCollection, Action<ShellDataStreams> dataStreamActions = null)
         {
             Collection<CmdInfo> _result = new Collection<CmdInfo>();
             int count = 0;
@@ -605,27 +605,31 @@ namespace PowerShellPowered.PowerShellConnect
             {
                 count++;
                 int percent = (100 * count / total);
-                if (alternateDataStream != null)
-                    alternateDataStream(new PSDataAlternateStream() { HasProgress = true, SimpleProgress = new ProgressRecord(100, "adding data", "Adding Data Description") { PercentComplete = percent } });
+                if (dataStreamActions != null)
+                    dataStreamActions(ShellDataStreams.CreateProgressDataStream(100, "adding data", "Adding Data Description", percent));
                 try
                 {
                     _result.Add(commandinfo.ToCmdInfo(true));
                 }
                 catch (Exception ex)
                 {
-                    if (alternateDataStream != null)
+                    if (dataStreamActions != null)
                     {
                         string errline = string.Format("Error parsing '{0}' in module '{1}'. Message: {2}\r\n{3}", commandinfo.Name, commandinfo.ModuleName, ex.Message, (ex.InnerException != null ? ex.InnerException.Message : string.Empty));
-                        alternateDataStream(new PSDataAlternateStream() { HasSimpleError = true, SimpleError = errline });
+                        dataStreamActions(ShellDataStreams.CreateGenericError(errline));
                     }
                 }
             }
-            if (alternateDataStream != null)
-                alternateDataStream(new PSDataAlternateStream() { HasProgress = true, SimpleProgress = new ProgressRecord(100, "adding data", "Adding Data Description") { PercentComplete = 100, RecordType = ProgressRecordType.Completed } });
+            if (dataStreamActions != null)
+            {
+                ShellDataStreams progress = ShellDataStreams.CreateProgressDataStream(100, "adding data", "Adding Data Description", 100);
+                progress.Progress.IsCompleted = true;
+                dataStreamActions(progress);
+            }
             return _result;
         }
 
-        public static string GetRedirectedURL(string connectionUri, string configSchemaUri, string userName, SecureString securePassword, RunspaceMode runspaceMode = RunspaceMode.RemoteRunspace, int maxRedirectionCount = 0)
+        public static string GetRedirectedURL(string connectionUri, string configSchemaUri, string userName, SecureString securePassword, ShellRunspaceMode runspaceMode = ShellRunspaceMode.Remote, int maxRedirectionCount = 0)
         {
 
             string _r = connectionUri;
@@ -670,7 +674,7 @@ namespace PowerShellPowered.PowerShellConnect
 
         public CmdHelp GetCommandHelp(string command, Action<PSDataStreams> psDataStreamAction)
         {
-            if (RunspaceMode == RunspaceMode.RemoteRunspace)
+            if (RunspaceMode == ShellRunspaceMode.Remote)
             {
                 CleanUpTimer.Start();
                 //GC.KeepAlive(CleanUpTimer);
@@ -696,7 +700,7 @@ namespace PowerShellPowered.PowerShellConnect
             string assemblypath = Assembly.GetAssembly(typeof(ShellConnection)).Location;
             cmd.Parameters.Add("EntitiesFile", assemblypath);
 
-            if (RunspaceMode != RunspaceMode.LocalRunspace)
+            if (RunspaceMode != ShellRunspaceMode.Local)
                 cmd.Parameters.Add("Session", ExecutionRunspace.PSSession);
 
             pscmd.AddCommand(cmd);
@@ -776,9 +780,9 @@ namespace PowerShellPowered.PowerShellConnect
                 throw new Exception("thrown in gethelp execute local" + ex.Message);
             }
 
-            //if (RunspaceMode != originalRunspaceMode)
+            //if (ShellRunspaceMode != originalRunspaceMode)
             //{
-            //    RunspaceMode = originalRunspaceMode;
+            //    ShellRunspaceMode = originalRunspaceMode;
             //    if (Ispersistant) Create();
             //}
 
@@ -1339,7 +1343,7 @@ namespace PowerShellPowered.PowerShellConnect
             bool skipSettingDefaultRunspace = false;
             switch (RunspaceMode)
             {
-                case RunspaceMode.RemoteRunspace:
+                case ShellRunspaceMode.Remote:
                     if (_remoteSessionLocalRunspaceForDefultRunspace == null || _remoteSessionLocalRunspaceForDefultRunspace.RunspaceStateInfo.State != RunspaceState.Opened)
                     {
                         _remoteSessionLocalRunspaceForDefultRunspace = CreateLocalDefaultRunspace(ImportedModuleList);
@@ -1352,14 +1356,14 @@ namespace PowerShellPowered.PowerShellConnect
 
                     runspace = this.Runspace;
                     break;
-                case RunspaceMode.RemoteSessionImported:
-                case RunspaceMode.LocalRunspace:
+                case ShellRunspaceMode.RemoteSessionImported:
+                case ShellRunspaceMode.Local:
                     if (Runspace.RunspaceStateInfo.State != RunspaceState.Opened)
                         Create();
 
                     runspace = this.Runspace;
                     break;
-                case RunspaceMode.RemoteSession:
+                case ShellRunspaceMode.RemoteSession:
                     if (ExecutionRunspace.PSSession.Runspace.RunspaceStateInfo.State != RunspaceState.Opened)
                         Create();
                     if (_remoteSessionLocalRunspaceForDefultRunspace == null || _remoteSessionLocalRunspaceForDefultRunspace.RunspaceStateInfo.State != RunspaceState.Opened)
@@ -1387,7 +1391,7 @@ namespace PowerShellPowered.PowerShellConnect
             InitialSessionState iss = InitialSessionState.CreateDefault();
             switch (RunspaceMode)
             {
-                case RunspaceMode.RemoteRunspace:
+                case ShellRunspaceMode.Remote:
                     PSCredential credential = new PSCredential(UserName, Password);
                     WSManConnectionInfo connectionInfo = GetWsManConnection();
                     connectionInfo.MaximumConnectionRedirectionCount = MaxRedirectionCount;
@@ -1399,7 +1403,7 @@ namespace PowerShellPowered.PowerShellConnect
                     AttachRunspaceChanged(this.Runspace);
                     break;
 
-                case RunspaceMode.RemoteSession:
+                case ShellRunspaceMode.RemoteSession:
                     ExecutionRunspace = new ExecutionRunspace(UserName, Password, ConnectionUri, SchemaUri, MaxRedirectionCount > 0, false, ImportedModuleList, psDataStreamAction);
                     this.Runspace = ExecutionRunspace.Runspace;
                     RunspaceCreated = true;
@@ -1408,7 +1412,7 @@ namespace PowerShellPowered.PowerShellConnect
                         AttachRunspaceChanged(ExecutionRunspace.PSSession.Runspace);
                     break;
 
-                case RunspaceMode.RemoteSessionImported:
+                case ShellRunspaceMode.RemoteSessionImported:
                     ExecutionRunspace = new ExecutionRunspace(UserName, Password, ConnectionUri, SchemaUri, MaxRedirectionCount > 0, true, ImportedModuleList, psDataStreamAction);
                     this.Runspace = ExecutionRunspace.Runspace;
                     RunspaceCreated = true;
@@ -1417,7 +1421,7 @@ namespace PowerShellPowered.PowerShellConnect
                         AttachRunspaceChanged(ExecutionRunspace.PSSession.Runspace);
                     break;
 
-                case RunspaceMode.LocalRunspace:
+                case ShellRunspaceMode.Local:
                     //if (ImportedModuleList == null || ImportedModuleList.Count == 0) ImportedModuleList = new List<string>() { "Microsoft.PowerShell.*" };
                     ExecutionRunspace = new ExecutionRunspace(ImportedModuleList, psDataStreamAction: psDataStreamAction);
                     this.Runspace = ExecutionRunspace.Runspace;
@@ -1427,7 +1431,7 @@ namespace PowerShellPowered.PowerShellConnect
                     break;
 
                 default:
-                    throw new NotImplementedException("Unknown or not implemented RunspaceMode : " + RunspaceMode);
+                    throw new NotImplementedException("Unknown or not implemented ShellRunspaceMode : " + RunspaceMode);
             }
 
             //SetupdefinedVariables(GetExecutionRunspace());
@@ -1547,7 +1551,7 @@ namespace PowerShellPowered.PowerShellConnect
         //    {
         //        if (RemoteRunSpace.RunspaceStateInfo.State != RunspaceState.Opened) RemoteRunSpace.Open();
 
-        //        //Pipeline Pipeline = RemoteRunspace.CreatePipeline();
+        //        //Pipeline Pipeline = Remote.CreatePipeline();
         //        //Pipeline.Commands.AddScript(scriptText);
 
         //        //// add an extra command to transform the script output objects into nicely formatted strings

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-namespace PowerShellPowered.PowerShellConnect.Entities
+namespace PowerShellPowered.Entities
 {
     public class CmdInfo
     {

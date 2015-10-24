@@ -6,10 +6,10 @@ using System.Security;
 using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 
-namespace ExtensionMethods
+namespace PowerShellPowered.ExtensionMethods
 {
 
-    internal static partial class ExtensionMethodsCLR
+    public static partial class ExtensionMethodsCLR
     {
 
         # region Non Portable
@@ -170,7 +170,7 @@ namespace ExtensionMethods
         public static bool? ParseBool(this string str, bool indexOfTrue = true, bool nullable = true)
         {
             bool outnull;
-            if (nullable && string.IsNullOrEmpty(str)) return null;
+            if (nullable && str.IsNullOrEmpty()) return null;
             if (bool.TryParse(str, out outnull))
                 return bool.Parse(str);
             else if (str.Equals("$true", StringComparison.OrdinalIgnoreCase))

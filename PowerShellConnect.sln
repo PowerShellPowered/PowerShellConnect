@@ -12,6 +12,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerShellConnect", "PowerS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerShellConnect.Tests", "PowerShellConnect.Tests\PowerShellConnect.Tests.csproj", "{53E10238-2C6C-409D-817D-7D4CBA3D5BE3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerShellConnect.Entities", "PowerShellConnect.Entities\PowerShellConnect.Entities.csproj", "{701E9C2D-0DEE-4535-B643-E833673B327B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,10 @@ Global
 		{53E10238-2C6C-409D-817D-7D4CBA3D5BE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{53E10238-2C6C-409D-817D-7D4CBA3D5BE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{53E10238-2C6C-409D-817D-7D4CBA3D5BE3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{701E9C2D-0DEE-4535-B643-E833673B327B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{701E9C2D-0DEE-4535-B643-E833673B327B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{701E9C2D-0DEE-4535-B643-E833673B327B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{701E9C2D-0DEE-4535-B643-E833673B327B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

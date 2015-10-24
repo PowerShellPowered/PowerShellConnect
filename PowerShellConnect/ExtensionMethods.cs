@@ -1,4 +1,4 @@
-﻿using PowerShellPowered.PowerShellConnect.Entities;
+﻿using PowerShellPowered.Entities;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,6 +12,21 @@ namespace PowerShellPowered.PowerShellConnect
 {
     public static class ExtensionMethods
     {
+        public static string GetHeaderLabel(this PSObject pso)
+        {
+            string _r = string.Empty;
+            PSPropertyInfo piDisplayName = pso.Properties["DisplayName"];
+            if (piDisplayName != null && piDisplayName.Value != null)
+                return piDisplayName.Value.ToString();
+            PSPropertyInfo piName = pso.Properties["Name"];
+            if (piName != null && piName.Value != null)
+                return piName.Value.ToString();
+            PSPropertyInfo piId = pso.Properties["Identity"];
+            if (piId != null && piId.Value != null)
+                return piId.Value.ToString();
+
+            return _r;
+        }
         public static void SetCredentialVariable(this Runspace runspace, string userName, SecureString password)
         {
             if (runspace == null)
@@ -200,8 +215,7 @@ namespace PowerShellPowered.PowerShellConnect
                 return result;
             }
         }
-
-
+        
         public static CmdInfo ToCmdInfo(this CommandInfo commandInfo, bool includeCommonParameters = false)
         {
             CmdInfo _res = new CmdInfo();
@@ -352,8 +366,7 @@ namespace PowerShellPowered.PowerShellConnect
 
             return _res;
         }
-
-
+        
         public static ModuleInfo ToModuleInfo(this PSModuleInfo moduleInfo)
         {
             ModuleInfo _res = new ModuleInfo()
@@ -372,6 +385,6 @@ namespace PowerShellPowered.PowerShellConnect
 
             return _res;
         }
-
+        
     }
 }
