@@ -47,7 +47,6 @@
     <Compile Include="ExecutionSession.cs" />
     <Compile Include="ExtensionMethods.cs" />
     <Compile Include="ShellConnection.cs" />
-    <Compile Include="ShellRunspaceMode.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ReferenceHost.cs" />
   </ItemGroup>

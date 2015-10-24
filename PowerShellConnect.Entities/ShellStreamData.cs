@@ -19,10 +19,12 @@ namespace PowerShellPowered.Entities
             sds.Progress = new ShellProgressData() { ActivityId = activityId, Activity = activity, StatusDescription = statusDescription };
             return sds;
         }
+
         public static ShellDataStreams CreateGenericError(string genericErrors)
         {
             return new ShellDataStreams() { GenericErrorMessage = genericErrors, StreamDataType = ShellStreamDataType.GenericError };
         }
+
 
     }
 

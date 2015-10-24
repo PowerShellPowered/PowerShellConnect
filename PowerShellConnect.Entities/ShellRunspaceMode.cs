@@ -1,5 +1,5 @@
 
-namespace PowerShellPowered.PowerShellConnect
+namespace PowerShellPowered.Entities
 {
     /// <summary>
     /// Creates shell based on Powershell configuration types

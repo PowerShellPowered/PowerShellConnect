@@ -36,11 +36,13 @@ namespace PowerShellPowered.PowerShellConnect
         public List<string> ImportedModuleList { get; set; }
         public Action<RunspaceAvailability> RunspaceAvailabilityChanged { get; set; }
         public Action<RunspaceStateInfo> RunspaceStateChanged { get; set; }
+        internal Action<PSDataStreams> psDataStreamAction = null;
+        public Action<ShellDataStreams> DataStreamAction { get; private set; } = null;
+        private ShellStreamDataType streamDataType = ShellStreamDataType.None;
         Timer CleanUpTimer;
         //public bool ImportPSSession { get; set; }
 
         public Dictionary<string, object> DefinedInitialVariables { get; set; }
-
 
         public ShellConnection(string connectionUri, string configSchemaUri, string userName, SecureString securePassword, ShellRunspaceMode runspaceMode = ShellRunspaceMode.Remote, int maxRedirectionCount = 0, AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.Basic)
             : this()
@@ -81,7 +83,7 @@ namespace PowerShellPowered.PowerShellConnect
             RemoveRunspace();
         }
 
-        public void Create(bool force = false, Action<PSDataStreams> psDataStreamAction = null)
+        public void Create(bool force = false, Action<ShellDataStreams> dataStreamAction = null, ShellStreamDataType streamDataType = ShellStreamDataType.All)
         {
             CleanUpTimer = new Timer(300000);
             CleanUpTimer.AutoReset = false;
@@ -95,8 +97,10 @@ namespace PowerShellPowered.PowerShellConnect
 
             //if (!Ispersistant)
             //    return;
-
-            CreateRunspace(psDataStreamAction);
+            this.DataStreamAction = dataStreamAction;
+            this.psDataStreamAction = dataStreamAction.PreparePSDataStreamsCallBacks(streamDataType);
+            this.streamDataType = streamDataType;
+            CreateRunspace();
         }
 
         internal void ClenupUnusedSecondaryConnection()
@@ -287,13 +291,14 @@ namespace PowerShellPowered.PowerShellConnect
         /// <param name="command"></param>
         /// <param name="parameters"> Dictionary of string parametername, KeyValue -Parametertype, param value </param>
         /// <returns></returns>
-        public Collection<PSObject> ExecuteCommand(string command, Dictionary<string, object> parameters, bool useSession = false, Action<PSDataStreams> psDataStreamAction = null)
+        public Collection<PSObject> ExecuteCommand(string command, Dictionary<string, object> parameters, bool useSession = false, Action<ShellDataStreams> dataStreamAction = null, ShellStreamDataType streamDataType = ShellStreamDataType.All)
         {
-            return ExecuteCommand<PSObject>(command, parameters, false, psDataStreamAction);
+
+            return ExecuteCommand<PSObject>(command, parameters, false, dataStreamAction, streamDataType);
 
         }
 
-        public Collection<T> ExecuteCommand<T>(string command, Dictionary<string, object> parameters, bool useSession = false, Action<PSDataStreams> psDataStreamAction = null)
+        public Collection<T> ExecuteCommand<T>(string command, Dictionary<string, object> parameters, bool useSession = false, Action<ShellDataStreams> dataStreamAction = null, ShellStreamDataType streamDataType = ShellStreamDataType.All)
         {
             Command cmd = new Command(command);
 
@@ -308,39 +313,39 @@ namespace PowerShellPowered.PowerShellConnect
 
             _runspace = GetExecutionRunspace();
 
-            var result = _runspace.ExecuteCommand<T>(psc, psDataStreamAction);
+            var result = _runspace.ExecuteCommand<T>(psc, this.GetPSDataStreamAction(dataStreamAction, streamDataType));
 
             //if (!Ispersistant) ResetRunspace();
 
             return result;
         }
 
-        public Collection<PSObject> ExecuteCommand(PSCommand command, Action<PSDataStreams> psDataStreamAction = null)
+        public Collection<PSObject> ExecuteCommand(PSCommand command, Action<ShellDataStreams> dataStreamAction = null, ShellStreamDataType streamDataType = ShellStreamDataType.All)
         {
             //_runspace = GetExecutionRunspace();
             //return _runspace.ExecuteCommand<PSObject>(command, psDataStreamAction);
-            return this.ExecuteCommand<PSObject>(command, psDataStreamAction);
+            return this.ExecuteCommand<PSObject>(command, dataStreamAction, streamDataType);
         }
 
-        public Collection<T> ExecuteCommand<T>(PSCommand command, Action<PSDataStreams> psDataStreamAction = null)
+        public Collection<T> ExecuteCommand<T>(PSCommand command, Action<ShellDataStreams> dataStreamAction = null, ShellStreamDataType streamDataType = ShellStreamDataType.All)
         {
             _runspace = GetExecutionRunspace();
 
-            var result = _runspace.ExecuteCommand<T>(command, psDataStreamAction);
+            var result = _runspace.ExecuteCommand<T>(command, this.GetPSDataStreamAction(dataStreamAction, streamDataType));
 
             //if (!Ispersistant) ResetRunspace();
 
             return result;
         }
 
-        public Collection<PSObject> ExecuteScript(string scriptText, Dictionary<string, object> scriptParameters = null, bool useSession = true, bool out_String = false, bool stream = false, int width = 10000, Action<PSDataStreams> psDataStreamAction = null)
+        public Collection<PSObject> ExecuteScript(string scriptText, Dictionary<string, object> scriptParameters = null, bool useSession = true, bool out_String = false, bool stream = false, int width = 10000, Action<ShellDataStreams> dataStreamAction = null, ShellStreamDataType streamDataType = ShellStreamDataType.All)
         {
-            return this.ExecuteScript<PSObject>(scriptText, scriptParameters, useSession, out_String, stream, width, psDataStreamAction);
+            return this.ExecuteScript<PSObject>(scriptText, scriptParameters, useSession, out_String, stream, width, dataStreamAction, streamDataType);
 
             //return this.ExecutePipeLine<PSObject>(scriptText, out_String, stream, width, psDataStreamAction);
         }
 
-        public Collection<T> ExecuteScript<T>(string scriptText, Dictionary<string, object> scriptParameters = null, bool useSession = true, bool out_String = false, bool stream = false, int width = 10000, Action<PSDataStreams> psDataStreamAction = null)
+        public Collection<T> ExecuteScript<T>(string scriptText, Dictionary<string, object> scriptParameters = null, bool useSession = true, bool out_String = false, bool stream = false, int width = 10000, Action<ShellDataStreams> dataStreamAction = null, ShellStreamDataType streamDataType = ShellStreamDataType.All)
         {
             _runspace = GetExecutionRunspace();
 
@@ -356,7 +361,7 @@ namespace PowerShellPowered.PowerShellConnect
             }
 
             //? using runspace extension method to simplify management of code.
-            var result = _runspace.ExecuteScript<T>(scriptText, scriptParameters, out_String, stream, width, psDataStreamAction);
+            var result = _runspace.ExecuteScript<T>(scriptText, scriptParameters, out_String, stream, width, this.GetPSDataStreamAction(dataStreamAction, streamDataType));
 
             //if (!Ispersistant) ResetRunspace();
 
@@ -388,29 +393,29 @@ namespace PowerShellPowered.PowerShellConnect
             }
         }
 
-        public void ImportModules(string[] modules, Action<PSDataStreams> psDataStreamAction = null)
+        public void ImportModules(string[] modules, Action<ShellDataStreams> dataStreamAction = null, ShellStreamDataType streamDataType = ShellStreamDataType.All)
         {
             if (modules == null || modules.Length == 0) return;
 
             Dictionary<string, object> cmdparams = new Dictionary<string, object>();
             cmdparams.Add("Name", modules);
             var runspace = GetExecutionRunspace();
-            ExecuteCommand("Import-Module", cmdparams, false, psDataStreamAction);
+            ExecuteCommand("Import-Module", cmdparams, false, dataStreamAction, streamDataType);
             modules.ToList().ForEach((x) => { if (!ImportedModuleList.Contains(x)) { ImportedModuleList.Add(x); } });
         }
 
-        public void RemoveModules(string[] modules, Action<PSDataStreams> psDataStreamAction = null)
+        public void RemoveModules(string[] modules, Action<ShellDataStreams> dataStreamAction = null, ShellStreamDataType streamDataType = ShellStreamDataType.All)
         {
             if (modules == null || modules.Length == 0) return;
 
             Dictionary<string, object> cmdparams = new Dictionary<string, object>();
             cmdparams.Add("Name", modules);
             var runspace = GetExecutionRunspace();
-            ExecuteCommand("Remove-Module", cmdparams, false, psDataStreamAction);
+            ExecuteCommand("Remove-Module", cmdparams, false, dataStreamAction, streamDataType);
             modules.ToList().ForEach((x) => { if (ImportedModuleList.Contains(x)) { ImportedModuleList.Remove(x); } });
         }
 
-        public Collection<ModuleInfo> GetModuleInformation(string[] modules = null, bool listavailable = false, Action<PSDataStreams> psDataStreamAction = null)
+        public Collection<ModuleInfo> GetModuleInformation(string[] modules = null, bool listavailable = false, Action<ShellDataStreams> dataStreamAction = null, ShellStreamDataType streamDataType = ShellStreamDataType.All)
         {
             Dictionary<string, object> cmdparams = new Dictionary<string, object>();
             if (modules != null) cmdparams.Add("Name", modules);
@@ -418,7 +423,7 @@ namespace PowerShellPowered.PowerShellConnect
 
             Collection<ModuleInfo> result = new Collection<ModuleInfo>();
 
-            result = GetModuleInfoCollection(ExecuteCommand<PSModuleInfo>("Get-Module", cmdparams, false, psDataStreamAction));
+            result = GetModuleInfoCollection(ExecuteCommand<PSModuleInfo>("Get-Module", cmdparams, false, dataStreamAction, streamDataType));
 
             return result;
         }
@@ -441,7 +446,7 @@ namespace PowerShellPowered.PowerShellConnect
             return _result;
         }
 
-        public Collection<CmdInfo> GetCommandCollection(string[] cmdletArray = null, int totalCount = -1, string[] module = null, bool skipmodule = false, CmdType commandType = CmdType.AllPowerShellNative, string nameFilter = null, Action<PSDataStreams> psDataStreamAction = null, Action<ShellDataStreams> shellDatastreams = null)
+        public Collection<CmdInfo> GetCommandCollection(string[] cmdletArray = null, int totalCount = -1, string[] module = null, bool skipmodule = false, CmdType commandType = CmdType.AllPowerShellNative, string nameFilter = null, Action<ShellDataStreams> dataStreamAction = null, ShellStreamDataType streamDataType = ShellStreamDataType.All)
         {
             Dictionary<string, object> cmdparams = new Dictionary<string, object>();
             //if (module == null && ShellRunspaceMode == ShellRunspaceMode.Local)
@@ -474,12 +479,12 @@ namespace PowerShellPowered.PowerShellConnect
                 psc.AddCommand(cmd);
                 psc.AddCommand("where-object").AddParameter("property", "modulename").AddParameter("ne").AddParameter("value", "");
                 //result = GetCmdInfoCollection(ExecuteCommand<CommandInfo>(Constants.Cmdlets.GetCommand, cmdparams, false, psDataStreamAction), alternateDataStreamAction);
-                result = GetCmdInfoCollection(ExecuteCommand<CommandInfo>(psc, psDataStreamAction), shellDatastreams);
+                result = GetCmdInfoCollection(ExecuteCommand<CommandInfo>(psc, dataStreamAction, streamDataType), DataStreamAction);
             }
 
             else
             {
-                result = GetCommandCollectionRemote(cmdletArray, totalCount, module, commandType, nameFilter, psDataStreamAction);
+                result = GetCommandCollectionRemote(cmdletArray, totalCount, module, commandType, nameFilter, dataStreamAction, streamDataType);
             }
 
             //if (!Ispersistant) ResetRunspace();
@@ -487,7 +492,7 @@ namespace PowerShellPowered.PowerShellConnect
             return result;
         }
 
-        public Collection<CmdInfo> GetScriptInfo(string scriptFileName, CmdType commandType = CmdType.ExternalScript, Action<PSDataStreams> psDataStreamAction = null)
+        public Collection<CmdInfo> GetScriptInfo(string scriptFileName, CmdType commandType = CmdType.ExternalScript, Action<ShellDataStreams> dataStreamAction = null, ShellStreamDataType streamDataType = ShellStreamDataType.All)
         {
             Dictionary<string, object> cmdparams = new Dictionary<string, object>();
 
@@ -496,7 +501,7 @@ namespace PowerShellPowered.PowerShellConnect
             //cmdparams.Add(Constants.ParameterNameStrings.CommandType, (int)commandType);
 
             Collection<CmdInfo> result = new Collection<CmdInfo>();
-            result = GetCmdInfoCollection(ExecuteCommand<CommandInfo>(Constants.Cmdlets.GetCommand, cmdparams, false, psDataStreamAction));
+            result = GetCmdInfoCollection(ExecuteCommand<CommandInfo>(Constants.Cmdlets.GetCommand, cmdparams, false, dataStreamAction, streamDataType));
 
             //if (!Ispersistant) ResetRunspace();
 
@@ -555,7 +560,7 @@ namespace PowerShellPowered.PowerShellConnect
         //All
         //255
 
-        public Collection<CmdInfo> GetCommandCollectionRemote(string[] cmdletArray = null, int totalCount = -1, string[] module = null, CmdType commandType = CmdType.Cmdlet, string nameFilter = null, Action<PSDataStreams> psDataStreamAction = null)
+        public Collection<CmdInfo> GetCommandCollectionRemote(string[] cmdletArray = null, int totalCount = -1, string[] module = null, CmdType commandType = CmdType.Cmdlet, string nameFilter = null, Action<ShellDataStreams> dataStreamAction = null, ShellStreamDataType streamDataType = ShellStreamDataType.All)
         {
 
             if (RunspaceMode == ShellRunspaceMode.Remote)
@@ -564,7 +569,7 @@ namespace PowerShellPowered.PowerShellConnect
                 //GC.KeepAlive(CleanUpTimer);
                 if (ExecutionRunspace == null || ExecutionRunspace.Runspace.RunspaceStateInfo.State != RunspaceState.Opened || ExecutionRunspace.PSSession.Runspace.RunspaceStateInfo.State != RunspaceState.Opened)
                 {
-                    this.ExecutionRunspace = new ExecutionRunspace(UserName, Password, ConnectionUri, SchemaUri, true, false, ImportedModuleList, psDataStreamAction);
+                    this.ExecutionRunspace = new ExecutionRunspace(UserName, Password, ConnectionUri, SchemaUri, true, false, ImportedModuleList, this.GetPSDataStreamAction(dataStreamAction, streamDataType));
                 }
                 _runspace = ExecutionRunspace.Runspace;
             }
@@ -591,7 +596,7 @@ namespace PowerShellPowered.PowerShellConnect
             PSCommand pscc = new PSCommand();
             pscc.Commands.Add(cmd);
 
-            var _result = _runspace.ExecuteCommand<CmdInfo>(pscc, psDataStreamAction);
+            var _result = _runspace.ExecuteCommand<CmdInfo>(pscc, this.GetPSDataStreamAction(dataStreamAction, streamDataType));
 
             return _result;
         }
@@ -672,7 +677,7 @@ namespace PowerShellPowered.PowerShellConnect
             return string.Empty;
         }
 
-        public CmdHelp GetCommandHelp(string command, Action<PSDataStreams> psDataStreamAction)
+        public CmdHelp GetCommandHelp(string command, Action<ShellDataStreams> dataStreamAction = null, ShellStreamDataType streamDataType = ShellStreamDataType.All)
         {
             if (RunspaceMode == ShellRunspaceMode.Remote)
             {
@@ -680,7 +685,7 @@ namespace PowerShellPowered.PowerShellConnect
                 //GC.KeepAlive(CleanUpTimer);
                 if (ExecutionRunspace == null || ExecutionRunspace.Runspace.RunspaceStateInfo.State != RunspaceState.Opened || ExecutionRunspace.PSSession.Runspace.RunspaceStateInfo.State != RunspaceState.Opened)
                 {
-                    this.ExecutionRunspace = new ExecutionRunspace(UserName, Password, ConnectionUri, SchemaUri, true, false, ImportedModuleList, psDataStreamAction);
+                    this.ExecutionRunspace = new ExecutionRunspace(UserName, Password, ConnectionUri, SchemaUri, true, false, ImportedModuleList, this.GetPSDataStreamAction(dataStreamAction, streamDataType));
                 }
                 else
                 {
@@ -709,7 +714,7 @@ namespace PowerShellPowered.PowerShellConnect
             {
                 hcmd = new CmdHelp();
 
-                Collection<CmdHelp> res = _runspace.ExecuteCommand<CmdHelp>(pscmd, psDataStreamAction);
+                Collection<CmdHelp> res = _runspace.ExecuteCommand<CmdHelp>(pscmd, this.GetPSDataStreamAction(dataStreamAction, streamDataType));
                 hcmd = res[0];
                 //! using simplified methods with script text
                 //++ win8/psv3 has bug for get-help -full, run update-help to stage local help                
@@ -1335,6 +1340,28 @@ namespace PowerShellPowered.PowerShellConnect
 
         #endregion
 
+        public void SetDataStreamAction(Action<ShellDataStreams> dataStreamAction, ShellStreamDataType streamDataType)
+        {
+            this.DataStreamAction = dataStreamAction;
+            this.psDataStreamAction = this.DataStreamAction == dataStreamAction ? this.psDataStreamAction : dataStreamAction.PreparePSDataStreamsCallBacks(streamDataType);
+        }
+        private Action<PSDataStreams> GetPSDataStreamAction(Action<ShellDataStreams> dataStreamAction, ShellStreamDataType streamDataType)
+        {
+            if (streamDataType == ShellStreamDataType.None)
+            {
+                return null;
+            }
+
+            if (this.DataStreamAction == dataStreamAction || dataStreamAction == null)
+            {
+                return this.psDataStreamAction;
+            }
+
+
+
+            return this.psDataStreamAction ?? dataStreamAction.PreparePSDataStreamsCallBacks(streamDataType);
+        }
+
         private Runspace GetExecutionRunspace()
         {
             //if (!Ispersistant)
@@ -1386,7 +1413,8 @@ namespace PowerShellPowered.PowerShellConnect
             return runspace;
         }
 
-        private void CreateRunspace(Action<PSDataStreams> psDataStreamAction)
+        private void CreateRunspace()
+
         {
             InitialSessionState iss = InitialSessionState.CreateDefault();
             switch (RunspaceMode)
@@ -1404,7 +1432,7 @@ namespace PowerShellPowered.PowerShellConnect
                     break;
 
                 case ShellRunspaceMode.RemoteSession:
-                    ExecutionRunspace = new ExecutionRunspace(UserName, Password, ConnectionUri, SchemaUri, MaxRedirectionCount > 0, false, ImportedModuleList, psDataStreamAction);
+                    ExecutionRunspace = new ExecutionRunspace(UserName, Password, ConnectionUri, SchemaUri, MaxRedirectionCount > 0, false, ImportedModuleList, this.psDataStreamAction);
                     this.Runspace = ExecutionRunspace.Runspace;
                     RunspaceCreated = true;
 
@@ -1413,7 +1441,7 @@ namespace PowerShellPowered.PowerShellConnect
                     break;
 
                 case ShellRunspaceMode.RemoteSessionImported:
-                    ExecutionRunspace = new ExecutionRunspace(UserName, Password, ConnectionUri, SchemaUri, MaxRedirectionCount > 0, true, ImportedModuleList, psDataStreamAction);
+                    ExecutionRunspace = new ExecutionRunspace(UserName, Password, ConnectionUri, SchemaUri, MaxRedirectionCount > 0, true, ImportedModuleList, this.psDataStreamAction);
                     this.Runspace = ExecutionRunspace.Runspace;
                     RunspaceCreated = true;
 
@@ -1423,7 +1451,7 @@ namespace PowerShellPowered.PowerShellConnect
 
                 case ShellRunspaceMode.Local:
                     //if (ImportedModuleList == null || ImportedModuleList.Count == 0) ImportedModuleList = new List<string>() { "Microsoft.PowerShell.*" };
-                    ExecutionRunspace = new ExecutionRunspace(ImportedModuleList, psDataStreamAction: psDataStreamAction);
+                    ExecutionRunspace = new ExecutionRunspace(ImportedModuleList, psDataStreamAction: this.psDataStreamAction);
                     this.Runspace = ExecutionRunspace.Runspace;
                     RunspaceCreated = true;
 

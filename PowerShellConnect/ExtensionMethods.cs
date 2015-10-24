@@ -215,7 +215,7 @@ namespace PowerShellPowered.PowerShellConnect
                 return result;
             }
         }
-        
+
         public static CmdInfo ToCmdInfo(this CommandInfo commandInfo, bool includeCommonParameters = false)
         {
             CmdInfo _res = new CmdInfo();
@@ -366,7 +366,7 @@ namespace PowerShellPowered.PowerShellConnect
 
             return _res;
         }
-        
+
         public static ModuleInfo ToModuleInfo(this PSModuleInfo moduleInfo)
         {
             ModuleInfo _res = new ModuleInfo()
@@ -385,6 +385,244 @@ namespace PowerShellPowered.PowerShellConnect
 
             return _res;
         }
-        
+
+        public static ShellDebugData ToShellDebugData(this DebugRecord debugRecord)
+        {
+            ShellDebugData result = new ShellDebugData();
+            result.Message = debugRecord.Message;
+            if (debugRecord.InvocationInfo != null)
+            {
+                result.ExpectingInput = debugRecord.InvocationInfo.ExpectingInput;
+                result.Line = debugRecord.InvocationInfo.Line;
+                result.PositionMessage = debugRecord.InvocationInfo.PositionMessage;
+                result.ScriptLineNumber = debugRecord.InvocationInfo.ScriptLineNumber;
+            }
+            result.DetailedData = debugRecord.ToString();
+
+            return result;
+        }
+        public static ShellDataStreams ToShellDebugDataStream(this DebugRecord debugRecord)
+        {
+            return new ShellDataStreams()
+            {
+                StreamDataType = ShellStreamDataType.Debug,
+                Debug = debugRecord.ToShellDebugData()
+            };
+        }
+
+        public static ShellVerboseData ToShellVerboseData(this VerboseRecord verboseRecord)
+        {
+            ShellVerboseData result = new ShellVerboseData();
+            result.Message = verboseRecord.Message;
+            if (verboseRecord.InvocationInfo != null)
+            {
+                result.ExpectingInput = verboseRecord.InvocationInfo.ExpectingInput;
+                result.Line = verboseRecord.InvocationInfo.Line;
+                result.PositionMessage = verboseRecord.InvocationInfo.PositionMessage;
+                result.ScriptLineNumber = verboseRecord.InvocationInfo.ScriptLineNumber;
+            }
+            result.DetailedData = verboseRecord.ToString();
+            return result;
+        }
+        public static ShellDataStreams ToShellVerboseDataStream(this VerboseRecord verboseRecord)
+        {
+            return new ShellDataStreams()
+            {
+                StreamDataType = ShellStreamDataType.Verbose,
+                Verbose = verboseRecord.ToShellVerboseData()
+            };
+        }
+
+        public static ShellWarningData ToShellWarningData(this WarningRecord warningRecord)
+        {
+            ShellWarningData result = new ShellWarningData();
+            result.Message = warningRecord.Message;
+            if (warningRecord.InvocationInfo != null)
+            {
+                result.ExpectingInput = warningRecord.InvocationInfo.ExpectingInput;
+                result.Line = warningRecord.InvocationInfo.Line;
+                result.PositionMessage = warningRecord.InvocationInfo.PositionMessage;
+                result.ScriptLineNumber = warningRecord.InvocationInfo.ScriptLineNumber;
+            }
+            result.FullyQualifiedWarningId = warningRecord.FullyQualifiedWarningId;
+            result.DetailedData = warningRecord.ToString();
+
+            return result;
+        }
+        public static ShellDataStreams ToShellWarningDataStream(this WarningRecord warningRecord)
+        {
+            return new ShellDataStreams()
+            {
+                StreamDataType = ShellStreamDataType.Warning,
+                Warning = warningRecord.ToShellWarningData(),
+            };
+        }
+
+        public static ShellErrorData ToShellErrorData(this ErrorRecord errorRecord)
+        {
+            ShellErrorData result = new ShellErrorData();
+
+            if (errorRecord.ErrorDetails != null)
+                result.Message = errorRecord.ErrorDetails.Message;
+            else
+                result.Message = errorRecord.ToString();
+            if (errorRecord.InvocationInfo != null)
+            {
+                result.ExpectingInput = errorRecord.InvocationInfo.ExpectingInput;
+                result.Line = errorRecord.InvocationInfo.Line;
+                result.PositionMessage = errorRecord.InvocationInfo.PositionMessage;
+                result.ScriptLineNumber = errorRecord.InvocationInfo.ScriptLineNumber;
+            }
+            result.FullyQualifiedErrorId = errorRecord.FullyQualifiedErrorId;
+            result.DetailedData = errorRecord.ToString();
+            if (errorRecord.CategoryInfo != null)
+                result.Category = errorRecord.CategoryInfo.Category.ToString();
+            if (errorRecord.Exception != null)
+                result.ExceptionMessage = errorRecord.Exception.Message;
+
+            return result;
+        }
+        public static ShellDataStreams ToShellErrorDataStream(this ErrorRecord errorRecord)
+        {            
+            return new ShellDataStreams()
+            {
+                StreamDataType = ShellStreamDataType.Error,
+                Error = errorRecord.ToShellErrorData(),
+            };
+        }
+
+        public static ShellProgressData ToShellProgressData(this ProgressRecord progressRecord)
+        {
+            ShellProgressData result = new ShellProgressData();
+            if (progressRecord == null) return result;
+            result.Activity = progressRecord.Activity;
+            result.ActivityId = progressRecord.ActivityId;
+            result.CurrentOperation = progressRecord.CurrentOperation;
+            result.ParentActivityId = progressRecord.ParentActivityId;
+            result.PercentComplete = progressRecord.PercentComplete;
+            result.IsCompleted = progressRecord.RecordType == ProgressRecordType.Completed;
+            result.SecondsRemaining = progressRecord.SecondsRemaining;
+            result.StatusDescription = progressRecord.StatusDescription;
+            result.ToStringValue = progressRecord.ToString();
+
+            return result;
+        }
+        public static ShellDataStreams ToShellProgressDataStream(this ProgressRecord progressRecord)
+        {
+            return new ShellDataStreams()
+            {
+                StreamDataType = ShellStreamDataType.Progress,
+                Progress = progressRecord.ToShellProgressData()
+            };
+        }
+
+
+        internal static Action<PSDataStreams> PreparePSDataStreamsCallBacks(this Action<ShellDataStreams> dataStreamAction, ShellStreamDataType actionType)
+        {
+            Action<PSDataStreams> psDataStreamAction = null;
+
+            if (actionType == ShellStreamDataType.None || dataStreamAction == null)
+                return null;
+
+
+            psDataStreamAction = new Action<PSDataStreams>((s) =>
+            {
+                if (actionType.HasFlag(ShellStreamDataType.Debug))
+                {
+                    s.Debug.DataAdded += (o, e) =>
+                    {
+                        var debugcol = o as PSDataCollection<DebugRecord>;
+                        if (debugcol != null)
+                        {
+                            dataStreamAction(new ShellDataStreams()
+                            {
+                                StreamDataType = ShellStreamDataType.Debug,
+                                Debug = debugcol[e.Index].ToShellDebugData(),// new ShellDebugData(debugcol[e.Index]),
+                            });
+                        }
+                    };
+
+                }
+
+                if (actionType.HasFlag(ShellStreamDataType.Error))
+                {
+                    s.Error.DataAdded += (o, e) =>
+                    {
+                        var errcol = o as PSDataCollection<ErrorRecord>;
+                        if (errcol != null)
+                        {
+                            dataStreamAction(new ShellDataStreams()
+                            {
+                                StreamDataType = ShellStreamDataType.Error,
+                                Error = errcol[e.Index].ToShellErrorData(),// new ShellErrorData(errcol[e.Index]),
+                            });
+                        }
+                    };
+
+                }
+                if (actionType.HasFlag(ShellStreamDataType.Verbose))
+                {
+                    s.Verbose.DataAdded += (o, e) =>
+                    {
+                        var verbosecol = o as PSDataCollection<VerboseRecord>;
+                        if (verbosecol != null)
+                        {
+                            dataStreamAction(new ShellDataStreams()
+                            {
+                                StreamDataType = ShellStreamDataType.Verbose,
+                                Verbose = verbosecol[e.Index].ToShellVerboseData(),// new ShellVerboseData(verbosecol[e.Index]),
+                            });
+                        }
+                    };
+
+                }
+                if (actionType.HasFlag(ShellStreamDataType.Warning))
+                {
+                    s.Warning.DataAdded += (o, e) =>
+                    {
+                        var warningcol = o as PSDataCollection<WarningRecord>;
+                        if (warningcol != null)
+                        {
+                            dataStreamAction(new ShellDataStreams()
+                            {
+                                StreamDataType = ShellStreamDataType.Warning,
+                                Warning = warningcol[e.Index].ToShellWarningData(),// new ShellWarningData(warningcol[e.Index]),
+                            });
+                        }
+                    };
+
+                }
+                if (actionType.HasFlag(ShellStreamDataType.Progress))
+                {
+                    s.Progress.DataAdded += (o, e) =>
+                    {
+                        var progresscol = o as PSDataCollection<ProgressRecord>;
+                        if (progresscol != null)
+                        {
+                            dataStreamAction(new ShellDataStreams()
+                            {
+                                StreamDataType = ShellStreamDataType.Progress,
+                                Progress = progresscol[e.Index].ToShellProgressData(),// new ShellProgressData(progresscol[e.Index]),
+                            });
+                        }
+                    };
+
+                }
+                // generic error is not used with psdatastreams;
+                //if (actionType.HasFlag(ShellStreamActionType.GenericError))
+                //{
+                //    if (s.Error != null && s.Error[(s.Error.Count - 1)].Exception != null)
+                //        dataStreamAction(new ShellDataStreams()
+                //        {
+                //            StreamDataType = ShellStreamActionType.GenericError,
+                //            GenericErrorMessage = s.Error[(s.Error.Count - 1)].Exception.Message
+                //        });
+                //}
+            });
+
+            return psDataStreamAction;
+        }
+
+
     }
 }
