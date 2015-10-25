@@ -1,5 +1,5 @@
 ﻿
-namespace PowerShellPowered.Entities
+namespace PowerShellPowered.PowerShellConnect.Entities
 {
     public enum CmdType
     {

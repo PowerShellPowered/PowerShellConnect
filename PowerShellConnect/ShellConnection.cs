@@ -1,4 +1,4 @@
-﻿using PowerShellPowered.Entities;
+﻿using PowerShellPowered.PowerShellConnect.Entities;
 using PowerShellPowered.ExtensionMethods;
 using System;
 using System.Collections;

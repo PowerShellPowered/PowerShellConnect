@@ -1,6 +1,6 @@
 ﻿using PowerShellPowered.ExtensionMethods;
 
-namespace PowerShellPowered.Entities
+namespace PowerShellPowered.PowerShellConnect.Entities
 {
     public class ShellDataStreams
     {

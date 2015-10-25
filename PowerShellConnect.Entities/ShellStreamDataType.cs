@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PowerShellPowered.Entities
+namespace PowerShellPowered.PowerShellConnect.Entities
 {
     [Flags]
     public enum ShellStreamDataType

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 
 
-namespace PowerShellPowered.Entities
+namespace PowerShellPowered.PowerShellConnect.Entities
 {
 
     public class CmdHelp
