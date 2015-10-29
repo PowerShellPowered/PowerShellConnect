@@ -276,17 +276,19 @@ foreach($CommandInfo in $CommandInfos)
     {
         #Write-Verbose 'using Types' -Verbose
         $CmdInfo = New-Object -TypeName PowerShellPowered.PowerShellConnect.Entities.CmdInfo
+        $CmdInfo.CommandType = [PowerShellPowered.PowerShellConnect.Entities.CmdType]$CommandInfo.CommandType
     }
     else
     {
         $CmdInfo = New-Object -TypeName PSObject -Property @{'IsRemoteCommand' = [bool]$true; 'CmdletBinding' = [bool]$false;[string]'CommandType'=$null;'DefaultParameterSet'=$null;'Definition'=$null;'Description'=$null;'HelpFile'=$null;'HelpUri'=$null;'ImplementingType'=$null;'Module'=$null;'ModuleName'=$null;'Name'=$null;'NameLower'=$null;'Noun'=$null;'Options'=$null;'OriginalEncoding'=$null;'OutputType'=[Collections.Generic.List[String]]::new();'Parameters'=[Collections.Generic.List[String]]::new();'ParameterSets'=[Collections.Generic.List[String]]::new();'Path'=$null;'PSSnapIn'=$null;'ReferencedCommand'=$null;'RemotingCapability'=$null;'ResolvedCommand'=$null;'ScriptBlock'=$null;'ScriptContents'=$null;'Verb'=$null;'Visibility'=$null;}
+        $CmdInfo.CommandType = $CommandInfo.CommandType
     }
     
         
     $CmdInfo.IsRemoteCommand = -not($CommandInfo -is [System.Management.Automation.CommandInfo])
     $CmdInfo.Name = $CommandInfo.Name
     $CmdInfo.NameLower = $CommandInfo.Name.ToLower()
-    $CmdInfo.CommandType = [string]$CommandInfo.CommandType
+    
     $CmdInfo.Definition = $CommandInfo.Definition
     if($CommandInfo.Module){$CmdInfo.Module = $CommandInfo.Module.Name}
     $CmdInfo.ModuleName = $CommandInfo.ModuleName

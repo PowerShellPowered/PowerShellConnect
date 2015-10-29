@@ -225,7 +225,7 @@ namespace PowerShellPowered.PowerShellConnect
             _res.IsRemoteCommand = false;
             _res.Name = commandInfo.Name;
             _res.NameLower = commandInfo.Name.ToLower();
-            _res.CommandType = commandType.ToString();
+            _res.CommandType = (CmdType)commandType;
             _res.Definition = commandInfo.Definition.Trim();
             _res.Module = commandInfo.Module == null ? string.Empty : commandInfo.Module.Name;
             _res.ModuleName = commandInfo.ModuleName;

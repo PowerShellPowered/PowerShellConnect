@@ -1478,7 +1478,7 @@ namespace PowerShellPowered.PowerShellConnect
                 _colItem.IsRemoteCommand = false;
                 _colItem.Name = commandInfoDynamic.Name;
                 _colItem.NameLower = _colItem.Name.ToLower();
-                _colItem.CommandType = commandType.ToString();
+                _colItem.CommandType = (CmdType)commandType;
                 _colItem.Definition = commandInfoDynamic.Definition.Trim();
                 _colItem.Module = commandInfoDynamic.Module;
                 _colItem.ModuleName = commandInfoDynamic.ModuleName;

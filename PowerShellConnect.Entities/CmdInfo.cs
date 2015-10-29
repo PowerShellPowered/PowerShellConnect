@@ -8,7 +8,7 @@ namespace PowerShellPowered.PowerShellConnect.Entities
     {
         public bool IsRemoteCommand { get; set; }
         public bool CmdletBinding { get; set; }
-        public string CommandType { get; set; }
+        public CmdType CommandType { get; set; }
         public string DefaultParameterSet { get; set; }
         public string Definition { get; set; }
         public string Description { get; set; }
